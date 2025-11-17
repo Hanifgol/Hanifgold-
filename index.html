@@ -4,27 +4,61 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0F172A" />
+    <link rel="manifest" href="/manifest.json" />
     <title>Tiling Quotation AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- jsPDF autotable plugin -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- XLSX (SheetJS) for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- docx for Word Export -->
+    <script src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+    <!-- FileSaver.js for saving docx and other files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <!-- JSZip for creating zip files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <!-- React Image Crop CSS -->
     <link rel="stylesheet" href="https://unpkg.com/react-image-crop/dist/ReactCrop.css">
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css">
     <script>
       tailwind.config = {
+        darkMode: 'class', // Enable dark mode
         theme: {
           extend: {
             fontFamily: {
               sans: ['Poppins', 'sans-serif'],
             },
+            colors: {
+              'primary': '#0EA5E9',      // Teal/Cyan (sky-500)
+              'secondary': '#0F172A',   // Deep Blue (slate-900)
+              'accent': '#FF6B35',      // Vibrant Orange
+              'success': '#10B981',      // Success Green (emerald-500)
+              'danger': '#EF4444',       // Danger Red (red-500)
+              'warning': '#FCD34D',     // Warning Yellow (amber-300)
+              'light-gray': '#F8FAFC',  // Subtle Light Gray (slate-50)
+              'medium-gray': '#E5E7EB', // Border Gray (gray-200)
+              'dark-gray': '#1F2937',   // Text Dark Gray (gray-800)
+              'gold': '#E6C66E',        // Main gold from logo
+              'gold-dark': '#B8860B',   // Darker gold for text/hovers
+              'gold-light': '#FFFBEB',  // Very light gold for backgrounds (amber-50)
+            }
           },
         },
+      }
+    </script>
+    <script>
+      // Flicker prevention script for dark mode
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
       }
     </script>
   <script type="importmap">
@@ -39,8 +73,10 @@
 }
 </script>
 </head>
-  <body class="bg-gray-100">
+  <body class="bg-light-gray dark:bg-secondary">
     <div id="root"></div>
+    <!-- QR Code Generator -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

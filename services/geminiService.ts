@@ -1,7 +1,7 @@
 
 
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-import { QuotationData, Settings } from '../types';
+import { Settings, QuotationData } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
 
@@ -41,10 +41,11 @@ export const getTextFromImageAI = async (imageFile: File): Promise<string> => {
     }
 };
 
-export const generateQuotationFromAI = async (inputText: string, settings: Settings): Promise<QuotationData> => {
+export const generateQuotationFromAI = async (inputText: string, settings: Settings, addCheckmateDefault: boolean, showChecklistDefault: boolean): Promise<any> => {
     const {
         wallTilePrice,
         floorTilePrice,
+        sittingRoomTilePrice,
         externalWallTilePrice,
         stepTilePrice,
         cementPrice,
@@ -54,10 +55,13 @@ export const generateQuotationFromAI = async (inputText: string, settings: Setti
         wastageFactor,
         wallTileM2PerCarton,
         floorTileM2PerCarton,
+        sittingRoomTileM2PerCarton,
         externalWallTileM2PerCarton,
         stepTileM2PerCarton,
+        customMaterialUnits,
+        defaultTermsAndConditions,
     } = settings;
-
+    
     const responseSchema = {
         type: Type.OBJECT,
         properties: {
@@ -80,11 +84,11 @@ export const generateQuotationFromAI = async (inputText: string, settings: Setti
                         category: { type: Type.STRING, description: 'The name of the area, e.g., "Toilet Wall".' },
                         cartons: { type: Type.NUMBER, description: 'Number of cartons. If not present, estimate from m².' },
                         sqm: { type: Type.NUMBER, description: 'Square meters. If not present, estimate from cartons.' },
+                        size: { type: Type.STRING, description: 'The size of the tile, e.g., "60x60", "40x40", "30x60". Default to empty string if not specified.' },
                         tileType: { type: Type.STRING, description: 'Categorize as "Wall", "Floor", "External Wall", "Step", or "Unknown".', enum: ['Wall', 'Floor', 'External Wall', 'Step', 'Unknown'] },
                         unitPrice: { type: Type.NUMBER, description: 'Price per carton. Use defaults if not specified.' },
-                        confidence: { type: Type.NUMBER, description: 'Confidence score (0.0 to 1.0) for the extracted data for this tile entry. A score below 0.8 indicates a default was likely used.' }
                     },
-                    required: ['category', 'cartons', 'sqm', 'tileType', 'unitPrice', 'confidence']
+                    required: ['category', 'cartons', 'sqm', 'size', 'tileType', 'unitPrice']
                 }
             },
             materials: {
@@ -97,16 +101,28 @@ export const generateQuotationFromAI = async (inputText: string, settings: Setti
                         quantity: { type: Type.NUMBER, description: 'Quantity of the material.' },
                         unit: { type: Type.STRING, description: 'Unit of measurement, e.g., "bags", "kg".' },
                         unitPrice: { type: Type.NUMBER, description: 'Price per unit. If not provided, estimate a reasonable price in NGN.' },
-                        confidence: { type: Type.NUMBER, description: 'Confidence score (0.0 to 1.0) for the extracted data for this material entry.' }
                     },
-                    required: ['item', 'quantity', 'unit', 'unitPrice', 'confidence']
+                    required: ['item', 'quantity', 'unit', 'unitPrice']
+                }
+            },
+            checklist: {
+                type: Type.ARRAY,
+                description: 'A checklist of key tasks for the project based on the job description. If checklists are disabled, return an empty array.',
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        item: { type: Type.STRING, description: 'A single task or milestone for the project.' },
+                        checked: { type: Type.BOOLEAN, description: 'The status of the checklist item. MUST be `false`.' }
+                    },
+                    required: ['item', 'checked']
                 }
             },
             workmanshipRate: { type: Type.NUMBER, description: `Rate for workmanship per m². Default to ${workmanshipRate} if not found.` },
             maintenance: { type: Type.NUMBER, description: `Maintenance fee. If not explicitly mentioned in the input, this value must be 0.` },
-            profitPercentage: { type: Type.NUMBER, description: 'Profit percentage if mentioned, otherwise null.' }
+            profitPercentage: { type: Type.NUMBER, description: 'Profit percentage if mentioned, otherwise null.' },
+            termsAndConditions: { type: Type.STRING, description: `Terms and conditions for the quotation. If not found in user input, default to: "${defaultTermsAndConditions}"` }
         },
-        required: ['clientDetails', 'tiles', 'materials', 'workmanshipRate', 'maintenance']
+        required: ['clientDetails', 'tiles', 'materials', 'checklist', 'workmanshipRate', 'maintenance', 'termsAndConditions']
     };
 
     const prompt = `
@@ -122,33 +138,45 @@ export const generateQuotationFromAI = async (inputText: string, settings: Setti
 
         2.  **Field Extraction & Defaults:** Extract all relevant fields. If a field is missing or seems incorrect, apply the specified defaults. NEVER fail or stop. ALWAYS produce a full JSON output.
             *   **Client & Project Details:** Look for information like client name, address, phone number, or a project name in the text. If any are not found, their value MUST be an empty string "".
+            *   **Tile Sizes:** You MUST robustly identify tile sizes in various formats like "60x60", "60 by 60", "60 x 60cm", "600x600mm", or "30-60". Normalize the extracted size into a simple "WidthxHeight" format (e.g., "60x60", "30x60"). If no size is specified for a tile category, the value for 'size' in the JSON MUST be an empty string "".
             *   **Tile Categories:** Identify categories like 'Toilet Wall', 'Toilet Floor', 'Kitchen Wall', 'Kitchen Floor', 'Rooms', 'Long Lobby', 'Step', 'External Wall', and any other custom ones.
-            *   **Quantities & Calculation Logic:** When estimating quantities, you MUST use these specific coverage rates:
-                *   Wall Tiles: ${wallTileM2PerCarton} m²/carton.
-                *   Floor Tiles (including Rooms, Lobby): ${floorTileM2PerCarton} m²/carton.
-                *   External Wall Tiles: ${externalWallTileM2PerCarton} m²/carton.
-                *   Step Tiles: ${stepTileM2PerCarton} m²/carton.
-                *   **If only 'm²' is provided for a tile category:** You MUST first calculate the 'cartons'. Use the formula: \`cartons = (m² / [appropriate m²/carton from above]) * ${wastageFactor}\`. ALWAYS round the result up to the nearest whole number. After calculating the cartons, apply the default unit price per carton to this calculated number.
-                *   **If only 'cartons' are provided:** You MUST calculate the 'm²'. Use the formula: \`m² = cartons * [appropriate m²/carton from above]\`.
-                *   **If BOTH are missing for a category mentioned:** You MUST set both 'cartons' and 'm²' to 0. Do not invent quantities.
-            *   **Tile Type & Unit Price Defaults (NGN):**
-                *   For categories containing 'Wall' (but not 'External Wall'), classify as 'Wall' tile, default price: ${wallTilePrice}.
-                *   For categories containing 'Floor', 'Rooms', 'Lobby', classify as 'Floor' tile, default price: ${floorTilePrice}.
-                *   For categories containing 'External Wall', classify as 'External Wall', default price: ${externalWallTilePrice}.
-                *   For categories containing 'Step', classify as 'Step', default price: ${stepTilePrice}.
-                *   If a price is provided in the text, USE IT. Otherwise, use the defaults.
+            *   **Quantities & Calculation Logic:** This is the most critical part. You MUST follow these rules strictly:
+                *   **If BOTH 'm²' and 'cartons' are provided:** Trust the user's input. Use the provided numbers directly. DO NOT recalculate them.
+                *   **If ONLY 'm²' is provided:** You MUST calculate 'cartons'. Use the exact formula: \`cartons = (m² / [appropriate m²/carton rate]) * ${wastageFactor}\`. The result MUST be rounded up to the next whole number (e.g., 40.1 becomes 41).
+                *   **If ONLY 'cartons' are provided:** You MUST calculate 'm²'. Use the exact formula: \`m² = cartons * [appropriate m²/carton rate]\`.
+                *   **If BOTH 'm²' and 'cartons' are missing for a category that is mentioned:** You MUST set both 'cartons' and 'm²' to 0 for that category. Do not invent or assume quantities.
+            *   **Coverage Rates for Calculation:** Use these exact rates when you need to calculate 'cartons' from 'm²'.
+                *   **Sitting Room:** If category contains 'Sitting Room', 'Living Room', or 'Parlour', you MUST use: ${sittingRoomTileM2PerCarton} m²/carton.
+                *   **Wall Tiles:** For any wall category (e.g., 'Toilet Wall', 'Kitchen Wall'), you MUST use: ${wallTileM2PerCarton} m²/carton.
+                *   **General Floor:** For all other floor types ('Toilet Floor', 'Room', 'Lobby', etc.), you MUST use: ${floorTileM2PerCarton} m²/carton.
+                *   **External Wall:** For 'External Wall' categories, you MUST use: ${externalWallTileM2PerCarton} m²/carton.
+                *   **Step:** For 'Step' or 'Staircase' categories, you MUST use: ${stepTileM2PerCarton} m²/carton.
+            *   **Tile Type & Unit Price Defaults (NGN):** Classify tiles and assign default unit prices based on the category name, following this specific order of priority. If a user provides a price, that price ALWAYS overrides these defaults.
+                1.  **Sitting Room:** If category contains 'Sitting Room', 'Living Room', or 'Parlour', classify as 'Floor' tile, price: ${sittingRoomTilePrice}.
+                2.  **External Wall:** If category contains 'External Wall', 'Outside Wall', or 'Facade', classify as 'External Wall', price: ${externalWallTilePrice}.
+                3.  **Step:** If category contains 'Step' or 'Staircase', classify as 'Step', price: ${stepTilePrice}.
+                4.  **Wall:** If category contains 'Wall' (but not 'External Wall'), 'Toilet Wall', 'Bathroom Wall', or 'Kitchen Wall', classify as 'Wall', price: ${wallTilePrice}.
+                5.  **Floor:** If category contains 'Floor', 'Room', 'Lobby', 'Toilet Floor', 'Kitchen Floor', or 'Bathroom Floor', classify as 'Floor', price: ${floorTilePrice}.
+                6.  **Unknown:** If no keywords match, classify as 'Unknown' and use the general floor tile price: ${floorTilePrice}.
             *   **Materials:** Extract materials like 'Cement', 'White Cement', 'Sand'. If unit prices are missing, you MUST use these specific default prices (in NGN):
                 *   Cement (per bag): ${cementPrice}
                 *   White Cement (per bag): ${whiteCementPrice}
                 *   Sharp Sand: ${sharpSandPrice}
                 *   For any other materials not listed above, use reasonable market estimates in NGN.
+                *   **Recognized Units:** When determining the 'unit' for a material, prioritize from this list: [${customMaterialUnits.join(', ')}]. If the unit is not in this list but is mentioned, use the mentioned unit.
             *   **Rates:**
                 *   Workmanship rate per m²: Default is ${workmanshipRate}.
                 *   Maintenance fee: Extract this if explicitly mentioned. **If not mentioned, set it to 0.**
             *   **Profit:** Extract profit only if explicitly mentioned as a percentage. Otherwise, the field should be null.
+            *   **Terms & Conditions**: If the user provides terms, use them. Otherwise, default to: "${defaultTermsAndConditions}".
         
-        3.  **Confidence Score:**
-            *   For each tile and material entry, provide a \`confidence\` score from 0.0 to 1.0. A score of 1.0 means the data was explicitly and clearly stated. A score below 0.8 means you had to use a default or make a strong assumption.
+        3.  **Generate a Checklist:**
+            ${showChecklistDefault
+                ? `*   Based on the job description, create a simple checklist of 3-5 key tasks or stages for the project (e.g., 'Surface Preparation', 'Tiling', 'Grouting', 'Cleanup').
+                    *   The 'checked' status for all items MUST be 'false' initially. If the job description is too vague to create a list, provide a generic one.
+                    ${addCheckmateDefault ? `*   You MUST add a final item to the checklist with the exact text "Checkmate".` : ''}`
+                : `*   The user has disabled checklists. You MUST return an empty array [] for the 'checklist' property in the JSON.`
+            }
             
         4.  **JSON Output:** Return ONLY a single valid JSON object that strictly adheres to the provided schema. Do not add any explanatory text before or after the JSON.
     `;
@@ -164,12 +192,49 @@ export const generateQuotationFromAI = async (inputText: string, settings: Setti
         });
         
         const jsonText = response.text.trim();
-        const parsedData: QuotationData = JSON.parse(jsonText);
-        return parsedData;
+        return JSON.parse(jsonText);
 
     } catch (error) {
         console.error("Error calling Gemini API:", error);
         throw new Error("Failed to parse quotation data from AI response.");
+    }
+};
+
+export const getAiSummaryForTts = async (quotation: QuotationData, grandTotal: number): Promise<string> => {
+    const prompt = `
+        You are a helpful assistant for a professional tiler.
+        Your task is to create a brief, conversational, and natural-sounding summary of the following quotation JSON data.
+        The summary is intended to be read aloud via text-to-speech. Make it sound like a person giving a quick, friendly overview.
+
+        **Quotation Data:**
+        \`\`\`json
+        ${JSON.stringify({ client: quotation.clientDetails, tiles: quotation.tiles, materials: quotation.materials }, null, 2)}
+        \`\`\`
+
+        **Key Information:**
+        *   The final grand total for this project is ${new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN'}).format(grandTotal)}.
+
+        **Instructions:**
+        1.  Start by addressing the project or client. e.g., "Alright, here is the summary for the ${quotation.clientDetails.projectName || quotation.clientDetails.clientName} quote."
+        2.  Briefly mention the main areas being tiled or the total number of tile types. Don't list every single tile. Just give a high-level overview. For example: "Looks like we are covering about ${quotation.tiles.reduce((acc, t) => acc + t.sqm, 0).toFixed(0)} square meters across a few key areas like the kitchen and bathrooms."
+        3.  Briefly mention one or two key materials if they stand out (e.g., a large quantity of cement).
+        4.  Clearly state the final "Grand Total". You must use the value provided above. Spell out the currency for a more natural sound, for example, "one million, two hundred thousand Naira".
+        5.  Keep the entire summary concise and friendly, ideally under 45 seconds when spoken.
+        6.  Return ONLY the summary text, ready to be converted to speech. Do not add any extra formatting, explanations, or markdown.
+
+        **Example Output (DO NOT COPY, JUST FOR STYLE):**
+        "Okay, I have prepared the quote for the Lekki Residence project for Mr. John. We will be tiling three main areas, totaling about 110 square meters. The main materials are 60 bags of cement and some white cement. The grand total for the project comes to one million, two hundred thirty-four thousand, five hundred sixty-seven Naira."
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+        });
+        return response.text.trim();
+    } catch (error) {
+        console.error("Error calling Gemini for TTS summary:", error);
+        throw new Error("Failed to generate audio summary.");
     }
 };
 
@@ -182,7 +247,7 @@ export const generateSpeechFromText = async (text: string): Promise<string> => {
                 responseModalities: [Modality.AUDIO],
                 speechConfig: {
                     voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName: 'Kore' }, // A standard, clear voice
+                        prebuiltVoiceConfig: {voiceName: 'Kore' }, // A standard, clear voice
                     },
                 },
             },
