@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0F172A" />
+    <meta name="theme-color" content="#F8FAFC" />
     <link rel="manifest" href="/manifest.json" />
     <title>Tiling Quotation AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -25,29 +25,42 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/styles.css">
     <script>
       tailwind.config = {
-        darkMode: 'class', // Enable dark mode
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
-              sans: ['Poppins', 'sans-serif'],
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Playfair Display', 'serif'],
             },
             colors: {
-              'primary': '#0EA5E9',      // Teal/Cyan (sky-500)
-              'secondary': '#0F172A',   // Deep Blue (slate-900)
-              'accent': '#FF6B35',      // Vibrant Orange
-              'success': '#10B981',      // Success Green (emerald-500)
-              'danger': '#EF4444',       // Danger Red (red-500)
-              'warning': '#FCD34D',     // Warning Yellow (amber-300)
-              'light-gray': '#F8FAFC',  // Subtle Light Gray (slate-50)
-              'medium-gray': '#E5E7EB', // Border Gray (gray-200)
-              'dark-gray': '#1F2937',   // Text Dark Gray (gray-800)
-              'gold': '#E6C66E',        // Main gold from logo
-              'gold-dark': '#B8860B',   // Darker gold for text/hovers
-              'gold-light': '#FFFBEB',  // Very light gold for backgrounds (amber-50)
+              // Modern Gold Palette
+              'gold': '#EAB308',        // Yellow 500 - Brighter Gold
+              'gold-dark': '#CA8A04',   // Yellow 600
+              'gold-light': '#FEF9C3',  // Yellow 100
+              'gold-lightest': '#FEFCE8', // Yellow 50
+              
+              // Clean Neutral Palette
+              'brand-dark': '#1E293B', // Slate 800
+              'brand-light': '#F8FAFC', // Slate 50
+              'surface-light': '#FFFFFF',
+              'surface-dark': '#0F172A', // Slate 900
+              'border-color': '#E2E8F0', // Slate 200
+              'border-dark': '#334155', // Slate 700
+              
+              // Status Colors
+              'success': '#10B981',      // Emerald 500
+              'danger': '#EF4444',       // Red 500
+              'warning': '#F59E0B',      // Amber 500
+              'info': '#3B82F6',         // Blue 500
+            },
+            boxShadow: {
+              'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+              'card': '0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03)',
+              'paper': '0 10px 30px -10px rgba(0, 0, 0, 0.15)',
             }
           },
         },
@@ -61,19 +74,21 @@
         document.documentElement.classList.remove('dark');
       }
     </script>
-  <script type="importmap">
+<script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.29.1",
-    "react-image-crop": "https://aistudiocdn.com/react-image-crop@^11.0.5"
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react-image-crop": "https://aistudiocdn.com/react-image-crop@^11.0.10",
+    "vite": "https://aistudiocdn.com/vite@^7.2.4",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1"
   }
 }
 </script>
 </head>
-  <body class="bg-light-gray dark:bg-secondary">
+  <body class="bg-brand-light dark:bg-brand-dark text-slate-700 dark:text-slate-200 antialiased">
     <div id="root"></div>
     <!-- QR Code Generator -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode/1.5.3/qrcode.min.js"></script>

@@ -1,7 +1,10 @@
+
+
 import React, { useState, useMemo } from 'react';
 import { InvoiceData, Settings } from '../types';
 import { ViewIcon, DeleteIcon, PdfIcon, ArrowUpIcon, ArrowDownIcon, FileTextIcon, CheckCircleIcon, EditIcon } from './icons';
 import { exportInvoiceToPdf } from '../services/exportService';
+import { calculateTotals } from '../services/calculationService';
 
 interface InvoicesProps {
   invoices: InvoiceData[];
@@ -13,30 +16,6 @@ interface InvoicesProps {
 
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', minimumFractionDigits: 0 }).format(amount);
-};
-
-const getInvoiceTotal = (invoice: InvoiceData, settings: Settings) => {
-    const { tiles, materials, workmanshipRate, maintenance, profitPercentage, discountType, discountValue } = invoice;
-    const { showMaintenance, taxPercentage } = settings;
-    const totalSqm = tiles.reduce((acc, tile) => acc + Number(tile.sqm), 0);
-    const totalTileCost = tiles.reduce((acc, tile) => acc + (Number(tile.cartons) * Number(tile.unitPrice)), 0);
-    const totalMaterialCost = materials.reduce((acc, mat) => acc + (Number(mat.quantity) * Number(mat.unitPrice)), 0);
-    const workmanshipCost = totalSqm * Number(workmanshipRate);
-    const workmanshipAndMaintenance = workmanshipCost + (showMaintenance ? Number(maintenance) : 0);
-    const preProfitTotal = totalTileCost + totalMaterialCost + workmanshipAndMaintenance;
-    const profitAmount = profitPercentage ? preProfitTotal * (Number(profitPercentage) / 100) : 0;
-    const subtotal = preProfitTotal + profitAmount;
-    
-    let discountAmount = 0;
-    if (discountType === 'percentage') {
-        discountAmount = subtotal * (discountValue / 100);
-    } else if (discountType === 'amount') {
-        discountAmount = discountValue;
-    }
-
-    const postDiscountSubtotal = subtotal - discountAmount;
-    const taxAmount = postDiscountSubtotal * (taxPercentage / 100);
-    return postDiscountSubtotal + taxAmount;
 };
 
 const StatusBadge: React.FC<{ status: 'Paid' | 'Unpaid' | 'Overdue' }> = ({ status }) => {
@@ -80,12 +59,16 @@ const Invoices: React.FC<InvoicesProps> = ({ invoices, settings, onEdit, onDelet
     }
 
     filtered.sort((a, b) => {
-        let aValue: any = a[sortConfig.key as keyof InvoiceData];
-        let bValue: any = b[sortConfig.key as keyof InvoiceData];
+        let aValue: any;
+        let bValue: any;
         if (sortConfig.key === 'total') {
-            aValue = getInvoiceTotal(a, settings);
-            bValue = getInvoiceTotal(b, settings);
+            aValue = calculateTotals(a, settings).grandTotal;
+            bValue = calculateTotals(b, settings).grandTotal;
+        } else {
+            aValue = a[sortConfig.key as keyof InvoiceData];
+            bValue = b[sortConfig.key as keyof InvoiceData];
         }
+
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
         return 0;
@@ -114,9 +97,9 @@ const Invoices: React.FC<InvoicesProps> = ({ invoices, settings, onEdit, onDelet
   );
   
   return (
-    <div className="bg-white p-8 rounded-xl border border-medium-gray shadow-md space-y-8">
+    <div className="bg-brand-light dark:bg-slate-900/50 p-8 rounded-2xl border border-gold-light dark:border-slate-700 shadow-lg space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-secondary">Invoices</h1>
+        <h1 className="text-3xl font-bold text-brand-dark dark:text-white">Invoices</h1>
         <p className="text-gray-500">Manage all your client invoices.</p>
       </div>
       
@@ -126,14 +109,14 @@ const Invoices: React.FC<InvoicesProps> = ({ invoices, settings, onEdit, onDelet
           placeholder="Search by client or invoice #..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="w-full md:w-1/3 px-4 py-2 bg-light-gray/50 border border-medium-gray rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/80 focus:border-primary"
+          className="w-full md:w-1/3 px-4 py-2 bg-white dark:bg-slate-800 border border-border-color dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-gold/80 focus:border-gold"
         />
         <div className="flex items-center gap-2">
           {['All', 'Paid', 'Unpaid', 'Overdue'].map(status => (
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${statusFilter === status ? 'bg-primary text-white shadow' : 'bg-gray-200 text-dark-gray hover:bg-gray-300'}`}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${statusFilter === status ? 'bg-gold text-brand-dark shadow' : 'bg-gray-200 dark:bg-slate-700 text-brand-dark dark:text-white hover:bg-gray-300 dark:hover:bg-slate-600'}`}
             >
               {status}
             </button>
@@ -141,9 +124,9 @@ const Invoices: React.FC<InvoicesProps> = ({ invoices, settings, onEdit, onDelet
         </div>
       </div>
       
-      <div className="overflow-x-auto border border-medium-gray rounded-lg">
+      <div className="overflow-x-auto border border-border-color dark:border-slate-700 rounded-lg">
         <table className="w-full text-sm text-left">
-          <thead className="bg-secondary text-white text-xs uppercase">
+          <thead className="bg-brand-dark text-white text-xs uppercase">
             <tr>
               <SortableHeader sortKey="invoiceNumber" label="Invoice #" />
               <th className="p-4 font-semibold">Client</th>
@@ -154,23 +137,31 @@ const Invoices: React.FC<InvoicesProps> = ({ invoices, settings, onEdit, onDelet
               <th className="p-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-medium-gray">
+          <tbody className="divide-y divide-border-color dark:divide-slate-700">
             {sortedAndFilteredInvoices.map(inv => (
-              <tr key={inv.id} className="bg-white hover:bg-light-gray transition-colors">
-                <td className="p-4 font-semibold text-primary">{inv.invoiceNumber}</td>
-                <td className="p-4 font-bold text-secondary">{inv.clientDetails.clientName}</td>
-                <td className="p-4 text-dark-gray">{new Date(inv.invoiceDate).toLocaleDateString()}</td>
-                <td className="p-4 text-dark-gray">{new Date(inv.dueDate).toLocaleDateString()}</td>
-                <td className="p-4 font-semibold text-dark-gray">{formatCurrency(getInvoiceTotal(inv, settings))}</td>
+              <tr key={inv.id} className="bg-white dark:bg-slate-800 hover:bg-gold-lightest dark:hover:bg-slate-700 transition-colors">
+                <td className="p-4 font-semibold text-gold-dark">{inv.invoiceNumber}</td>
+                <td className="p-4 font-bold text-brand-dark dark:text-white">{inv.clientDetails.clientName}</td>
+                <td className="p-4">{new Date(inv.invoiceDate).toLocaleDateString()}</td>
+                <td className="p-4">{new Date(inv.dueDate).toLocaleDateString()}</td>
+                <td className="p-4 font-semibold">{formatCurrency(calculateTotals(inv, settings).grandTotal)}</td>
                 <td className="p-4"><StatusBadge status={inv.status} /></td>
-                <td className="p-4 text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    {inv.status !== 'Paid' && (
-                       <button onClick={() => handleMarkAsPaid(inv)} className="p-2 text-gray-500 hover:text-success hover:bg-green-100 rounded-full" title="Mark as Paid"><CheckCircleIcon className="w-5 h-5"/></button>
-                    )}
-                    <button onClick={() => onEdit(inv.id)} className="p-2 text-gray-500 hover:text-primary hover:bg-sky-100 rounded-full" title="View/Edit"><EditIcon className="w-5 h-5"/></button>
-                    <button onClick={async () => await exportInvoiceToPdf(inv, settings)} className="p-2 text-gray-500 hover:text-accent hover:bg-orange-100 rounded-full" title="Download PDF"><PdfIcon className="w-5 h-5"/></button>
-                    <button onClick={() => onDelete(inv.id)} className="p-2 text-gray-500 hover:text-danger hover:bg-red-100 rounded-full" title="Delete"><DeleteIcon className="w-5 h-5"/></button>
+                <td className="p-4">
+                  <div className="flex items-center justify-end gap-1">
+                      <div className="w-9 h-9 flex items-center justify-center">
+                          {inv.status !== 'Paid' && (
+                            <button onClick={() => handleMarkAsPaid(inv)} className="p-2 text-gray-500 hover:text-success hover:bg-green-100 rounded-full transition-colors" title="Mark as Paid"><CheckCircleIcon className="w-5 h-5"/></button>
+                          )}
+                      </div>
+                      <div className="w-9 h-9 flex items-center justify-center">
+                          <button onClick={() => onEdit(inv.id)} className="p-2 text-gray-500 hover:text-gold-dark hover:bg-gold-light rounded-full transition-colors" title="View/Edit"><EditIcon className="w-5 h-5"/></button>
+                      </div>
+                      <div className="w-9 h-9 flex items-center justify-center">
+                          <button onClick={async () => await exportInvoiceToPdf(inv, settings)} className="p-2 text-gray-500 hover:text-orange-500 hover:bg-orange-100 rounded-full transition-colors" title="Download PDF"><PdfIcon className="w-5 h-5"/></button>
+                      </div>
+                      <div className="w-9 h-9 flex items-center justify-center">
+                          <button onClick={() => onDelete(inv.id)} className="p-2 text-gray-500 hover:text-danger hover:bg-red-100 rounded-full transition-colors" title="Delete"><DeleteIcon className="w-5 h-5"/></button>
+                      </div>
                   </div>
                 </td>
               </tr>
@@ -182,7 +173,7 @@ const Invoices: React.FC<InvoicesProps> = ({ invoices, settings, onEdit, onDelet
        {sortedAndFilteredInvoices.length === 0 && (
             <div className="text-center py-12 text-gray-500">
                 <FileTextIcon className="w-16 h-16 mx-auto text-gray-300" />
-                <h3 className="mt-2 text-lg font-semibold text-secondary">No Invoices Found</h3>
+                <h3 className="mt-2 text-lg font-semibold text-brand-dark dark:text-white">No Invoices Found</h3>
                 <p>Try adjusting your search or filters, or convert an accepted quotation to get started.</p>
             </div>
         )}

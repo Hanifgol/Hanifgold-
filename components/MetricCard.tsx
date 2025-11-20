@@ -9,14 +9,18 @@ interface MetricCardProps {
 
 const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon, gradient }) => {
   return (
-    <div className="bg-white rounded-xl border border-medium-gray shadow-md overflow-hidden transform transition-transform hover:scale-105 hover:shadow-lg">
-      <div className={`p-5 flex justify-between items-center text-white ${gradient}`}>
-        <p className="font-bold tracking-wider">{title}</p>
-        {icon}
+    <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-soft hover:shadow-lg transition-all duration-300 border border-border-color dark:border-border-dark flex flex-col justify-between h-full relative overflow-hidden group">
+      <div className="flex justify-between items-start">
+          <div>
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{title}</p>
+              <h3 className="text-2xl font-bold text-brand-dark dark:text-white tracking-tight group-hover:text-gold-dark transition-colors">{value}</h3>
+          </div>
+          <div className={`p-3 rounded-xl ${gradient} dark:bg-opacity-10 transition-transform group-hover:scale-110`}>
+              {icon}
+          </div>
       </div>
-      <div className="p-6">
-        <p className="text-3xl font-bold text-secondary">{value}</p>
-      </div>
+      {/* Decorative circle */}
+      <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full ${gradient} opacity-10 dark:opacity-5 pointer-events-none`}></div>
     </div>
   );
 };

@@ -64,10 +64,10 @@ const ClientDetailsForm: React.FC<ClientDetailsFormProps> = ({ details, setDetai
   ];
 
   return (
-    <div className="bg-white p-8 rounded-xl border border-medium-gray shadow-md">
+    <div className="bg-brand-light dark:bg-slate-900 p-8 rounded-2xl border border-gold-light dark:border-slate-700 shadow-lg">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-semibold text-secondary">Client & Project Information</h2>
-        <button onClick={() => setShowMore(!showMore)} className="text-sm font-semibold text-primary hover:text-sky-700 flex items-center gap-1">
+        <h2 className="text-lg font-semibold text-brand-dark dark:text-white">Client & Project Information</h2>
+        <button onClick={() => setShowMore(!showMore)} className="text-sm font-semibold text-gold-dark hover:text-gold-darker flex items-center gap-1">
           {showMore ? 'Hide Details' : 'More Details'}
           <ChevronDownIcon className={`w-5 h-5 transition-transform ${showMore ? 'rotate-180' : ''}`} />
         </button>
@@ -77,13 +77,13 @@ const ClientDetailsForm: React.FC<ClientDetailsFormProps> = ({ details, setDetai
         {/* Client Name with Autocomplete */}
         <div className="relative" ref={wrapperRef}>
             <div className="flex items-center justify-between mb-1">
-                 <label htmlFor="clientName" className="block text-sm font-bold text-dark-gray">
+                 <label htmlFor="clientName" className="block text-sm font-bold text-brand-dark dark:text-slate-200">
                     Client's Name*
                 </label>
                 {showMore && (
                   <div className="flex items-center">
-                      <input type="checkbox" id="showClientName" name="showClientName" checked={details.showClientName} onChange={handleChange} disabled={disabled} className="h-4 w-4 rounded border-medium-gray text-primary focus:ring-primary"/>
-                      <label htmlFor="showClientName" className="ml-2 text-xs text-gray-600">Show</label>
+                      <input type="checkbox" id="showClientName" name="showClientName" checked={details.showClientName} onChange={handleChange} disabled={disabled} className="h-4 w-4 rounded border-border-color text-gold focus:ring-gold"/>
+                      <label htmlFor="showClientName" className="ml-2 text-xs text-gray-600 dark:text-slate-400">Show</label>
                   </div>
                 )}
             </div>
@@ -97,12 +97,12 @@ const ClientDetailsForm: React.FC<ClientDetailsFormProps> = ({ details, setDetai
                 placeholder="e.g., John Doe"
                 disabled={disabled}
                 autoComplete="off"
-                className="block w-full px-3 py-2 bg-light-gray/50 border border-medium-gray rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/80 focus:border-primary sm:text-sm disabled:bg-gray-50 transition-colors"
+                className="block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-border-color dark:border-slate-700 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold/80 focus:border-gold sm:text-sm disabled:bg-gray-50 transition-colors"
             />
             {showSuggestions && suggestions.length > 0 && (
-                <ul className="absolute z-10 w-full mt-1 bg-white border border-medium-gray rounded-md shadow-lg max-h-40 overflow-auto">
+                <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-border-color dark:border-slate-700 rounded-md shadow-lg max-h-40 overflow-auto">
                     {suggestions.map(client => (
-                        <li key={client.id} onClick={() => handleSuggestionClick(client)} className="px-3 py-2 cursor-pointer hover:bg-light-gray">
+                        <li key={client.id} onClick={() => handleSuggestionClick(client)} className="px-3 py-2 cursor-pointer hover:bg-gold-lightest dark:hover:bg-slate-700">
                             <p className="font-semibold text-sm">{client.name}</p>
                             <p className="text-xs text-gray-500">{client.address}</p>
                         </li>
@@ -117,7 +117,7 @@ const ClientDetailsForm: React.FC<ClientDetailsFormProps> = ({ details, setDetai
             {optionalFields.map(field => (
                 <div key={field.name}>
                     <div className="flex items-center justify-between mb-1">
-                         <label htmlFor={field.name} className="block text-sm font-bold text-dark-gray">
+                         <label htmlFor={field.name} className="block text-sm font-bold text-brand-dark dark:text-slate-200">
                             {field.label}
                         </label>
                         <div className="flex items-center">
@@ -128,9 +128,9 @@ const ClientDetailsForm: React.FC<ClientDetailsFormProps> = ({ details, setDetai
                                 checked={details[field.showName as keyof ClientDetails] as boolean}
                                 onChange={handleChange}
                                 disabled={disabled}
-                                className="h-4 w-4 rounded border-medium-gray text-primary focus:ring-primary"
+                                className="h-4 w-4 rounded border-border-color text-gold focus:ring-gold"
                             />
-                            <label htmlFor={field.showName} className="ml-2 text-xs text-gray-600">Show</label>
+                            <label htmlFor={field.showName} className="ml-2 text-xs text-gray-600 dark:text-slate-400">Show</label>
                         </div>
                     </div>
                     <input
@@ -141,7 +141,7 @@ const ClientDetailsForm: React.FC<ClientDetailsFormProps> = ({ details, setDetai
                         onChange={handleChange}
                         placeholder={field.placeholder}
                         disabled={disabled}
-                        className="block w-full px-3 py-2 bg-light-gray/50 border border-medium-gray rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/80 focus:border-primary sm:text-sm disabled:bg-gray-50 transition-colors"
+                        className="block w-full px-3 py-2 bg-white dark:bg-slate-800 border border-border-color dark:border-slate-700 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gold/80 focus:border-gold sm:text-sm disabled:bg-gray-50 transition-colors"
                     />
                 </div>
             ))}
@@ -157,9 +157,9 @@ const ClientDetailsForm: React.FC<ClientDetailsFormProps> = ({ details, setDetai
                     checked={saveClientInfo}
                     onChange={(e) => setSaveClientInfo(e.target.checked)}
                     disabled={disabled}
-                    className="h-4 w-4 rounded border-medium-gray text-primary focus:ring-primary"
+                    className="h-4 w-4 rounded border-border-color text-gold focus:ring-gold"
                 />
-                <label htmlFor="saveClientInfo" className="ml-2 text-sm font-medium text-dark-gray">Save client information for future use</label>
+                <label htmlFor="saveClientInfo" className="ml-2 text-sm font-medium text-brand-dark dark:text-slate-300">Save client information for future use</label>
             </div>
         )}
       </div>

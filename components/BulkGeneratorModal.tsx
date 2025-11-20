@@ -200,56 +200,56 @@ const BulkGeneratorModal: React.FC<BulkGeneratorModalProps> = ({ isOpen, onClose
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
-            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
-                <div className="p-6 border-b border-medium-gray">
-                    <h2 className="text-xl font-bold text-secondary">Bulk Quotation Generator</h2>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
+                <div className="p-8 border-b border-border-color dark:border-slate-700">
+                    <h2 className="text-xl font-bold text-brand-dark dark:text-white">Bulk Quotation Generator</h2>
                     <p className="text-sm text-gray-500">Create multiple quotations at once to save time.</p>
                 </div>
                 
                 {isGenerating ? (
                     <div className="p-8 flex-grow flex flex-col items-center justify-center">
                         <LoadingSpinner />
-                        <p className="mt-4 text-lg font-semibold text-secondary">{progress.message}</p>
+                        <p className="mt-4 text-lg font-semibold text-brand-dark dark:text-white">{progress.message}</p>
                         <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
-                            <div className="bg-primary h-2.5 rounded-full" style={{ width: `${(progress.current / progress.total) * 100}%` }}></div>
+                            <div className="bg-gold h-2.5 rounded-full" style={{ width: `${(progress.current / progress.total) * 100}%` }}></div>
                         </div>
                         <p className="mt-1 text-sm text-gray-500">{progress.current} of {progress.total} Complete</p>
                     </div>
                 ) : (
                     <>
-                        <div className="p-6 border-b">
-                            <div className="flex bg-light-gray p-1 rounded-lg">
-                                <button onClick={() => setMode('sameClient')} className={`w-1/3 p-2 rounded-md font-semibold text-sm transition ${mode === 'sameClient' ? 'bg-white shadow text-primary' : 'text-gray-600'}`}>Same Client</button>
-                                <button onClick={() => setMode('sameJob')} className={`w-1/3 p-2 rounded-md font-semibold text-sm transition ${mode === 'sameJob' ? 'bg-white shadow text-primary' : 'text-gray-600'}`}>Same Job</button>
-                                <button onClick={() => setMode('csv')} className={`w-1/3 p-2 rounded-md font-semibold text-sm transition ${mode === 'csv' ? 'bg-white shadow text-primary' : 'text-gray-600'}`}>Import CSV</button>
+                        <div className="p-6 border-b dark:border-slate-700">
+                            <div className="flex bg-brand-light dark:bg-slate-800 p-1 rounded-lg">
+                                <button onClick={() => setMode('sameClient')} className={`w-1/3 p-2 rounded-md font-semibold text-sm transition ${mode === 'sameClient' ? 'bg-white dark:bg-slate-700 shadow text-gold-dark' : 'text-gray-600'}`}>Same Client</button>
+                                <button onClick={() => setMode('sameJob')} className={`w-1/3 p-2 rounded-md font-semibold text-sm transition ${mode === 'sameJob' ? 'bg-white dark:bg-slate-700 shadow text-gold-dark' : 'text-gray-600'}`}>Same Job</button>
+                                <button onClick={() => setMode('csv')} className={`w-1/3 p-2 rounded-md font-semibold text-sm transition ${mode === 'csv' ? 'bg-white dark:bg-slate-700 shadow text-gold-dark' : 'text-gray-600'}`}>Import CSV</button>
                             </div>
                         </div>
 
-                        <div className="p-6 overflow-y-auto flex-grow">
+                        <div className="p-8 overflow-y-auto flex-grow">
                             {mode === 'sameClient' && (
                                 <div className="space-y-4">
-                                    <div className="p-4 border rounded-lg">
-                                        <h3 className="font-bold text-dark-gray mb-2">Client Details</h3>
+                                    <div className="p-4 border dark:border-slate-700 rounded-lg">
+                                        <h3 className="font-bold text-brand-dark dark:text-white mb-2">Client Details</h3>
                                         <div className="grid grid-cols-2 gap-2">
                                             <input name="clientName" value={client.clientName} onChange={handleClientChange} placeholder="Client Name*" className="input-field" />
                                             <input name="clientAddress" value={client.clientAddress} onChange={handleClientChange} placeholder="Client Address" className="input-field" />
                                         </div>
                                     </div>
                                     <div className="space-y-2">
-                                        <h3 className="font-bold text-dark-gray">Job Notes</h3>
+                                        <h3 className="font-bold text-brand-dark dark:text-white">Job Notes</h3>
                                         {jobs.length > 0 && (
-                                            <div className="p-2 bg-light-gray/60 rounded-lg border max-h-40 overflow-y-auto space-y-2">
+                                            <div className="p-2 bg-brand-light/60 dark:bg-slate-800 rounded-lg border dark:border-slate-700 max-h-40 overflow-y-auto space-y-2">
                                                 {jobs.map((jobText, index) => (
-                                                    <div key={index} className="flex items-center justify-between bg-sky-100 text-sky-800 rounded-md p-2 text-sm">
+                                                    <div key={index} className="flex items-center justify-between bg-gold-light text-gold-darker rounded-md p-2 text-sm">
                                                         <span>{jobText}</span>
-                                                        <button onClick={() => removeJob(index)} className="p-1 rounded-full hover:bg-sky-200"><RemoveIcon className="w-4 h-4"/></button>
+                                                        <button onClick={() => removeJob(index)} className="p-1 rounded-full hover:bg-gold-lightest"><RemoveIcon className="w-4 h-4"/></button>
                                                     </div>
                                                 ))}
                                             </div>
                                         )}
                                         <div className="flex items-center gap-2">
                                             <input value={currentJobNote} onChange={(e) => setCurrentJobNote(e.target.value)} onKeyDown={handleJobKeyDown} placeholder={`Add job note...`} className="input-field flex-grow" />
-                                            <button onClick={addJob} disabled={!currentJobNote.trim()} className="p-2 bg-primary text-white rounded-lg disabled:bg-gray-400"><PlusIcon className="w-5 h-5"/></button>
+                                            <button onClick={addJob} disabled={!currentJobNote.trim()} className="p-2 bg-gold text-brand-dark rounded-lg disabled:bg-gray-400 disabled:text-white"><PlusIcon className="w-5 h-5"/></button>
                                         </div>
                                     </div>
                                 </div>
@@ -258,13 +258,13 @@ const BulkGeneratorModal: React.FC<BulkGeneratorModalProps> = ({ isOpen, onClose
                              {mode === 'sameJob' && (
                                 <div className="space-y-4">
                                     <div>
-                                        <h3 className="font-bold text-dark-gray mb-2">Common Job Notes</h3>
+                                        <h3 className="font-bold text-brand-dark dark:text-white mb-2">Common Job Notes</h3>
                                         <textarea value={job} onChange={(e) => setJob(e.target.value)} placeholder="Enter the job notes to apply to all clients..." className="input-field w-full" rows={3}></textarea>
                                     </div>
                                     <div className="space-y-2">
-                                        <h3 className="font-bold text-dark-gray">Client List ({clients.length})</h3>
+                                        <h3 className="font-bold text-brand-dark dark:text-white">Client List ({clients.length})</h3>
                                         {clients.length > 0 && (
-                                            <div className="p-2 bg-light-gray/60 rounded-lg border max-h-40 overflow-y-auto space-y-2">
+                                            <div className="p-2 bg-brand-light/60 dark:bg-slate-800 rounded-lg border dark:border-slate-700 max-h-40 overflow-y-auto space-y-2">
                                                 {clients.map((c, index) => (
                                                     <div key={index} className="flex items-center justify-between bg-indigo-100 text-indigo-800 rounded-md p-2 text-sm">
                                                         <div>
@@ -279,7 +279,7 @@ const BulkGeneratorModal: React.FC<BulkGeneratorModalProps> = ({ isOpen, onClose
                                                 ))}
                                             </div>
                                         )}
-                                        <div className="p-3 border rounded-lg space-y-2">
+                                        <div className="p-3 border dark:border-slate-700 rounded-lg space-y-2">
                                             <h4 className="text-sm font-semibold">{editingClientIndex !== null ? 'Editing Client' : 'Add New Client'}</h4>
                                             <div className="flex items-center gap-2">
                                                 <input value={currentClient.clientName} onChange={e => setCurrentClient(p => ({...p, clientName: e.target.value}))} placeholder="Client Name*" className="input-field flex-grow" />
@@ -287,7 +287,7 @@ const BulkGeneratorModal: React.FC<BulkGeneratorModalProps> = ({ isOpen, onClose
                                                 {editingClientIndex !== null ? (
                                                     <button onClick={handleUpdateClient} className="p-2 bg-success text-white rounded-lg">Update</button>
                                                 ) : (
-                                                    <button onClick={handleAddClient} disabled={!currentClient.clientName.trim()} className="p-2 bg-primary text-white rounded-lg disabled:bg-gray-400"><PlusIcon className="w-5 h-5"/></button>
+                                                    <button onClick={handleAddClient} disabled={!currentClient.clientName.trim()} className="p-2 bg-gold text-brand-dark rounded-lg disabled:bg-gray-400 disabled:text-white"><PlusIcon className="w-5 h-5"/></button>
                                                 )}
                                             </div>
                                         </div>
@@ -297,20 +297,20 @@ const BulkGeneratorModal: React.FC<BulkGeneratorModalProps> = ({ isOpen, onClose
                             
                             {mode === 'csv' && (
                                 <div className="text-center space-y-4">
-                                    <h3 className="text-lg font-bold text-dark-gray">Import from a CSV file</h3>
+                                    <h3 className="text-lg font-bold text-brand-dark dark:text-white">Import from a CSV file</h3>
                                     <p className="text-sm text-gray-500 max-w-md mx-auto">
                                         For complex jobs, upload a CSV to generate all quotations at once.
                                         Note: The parser is simple; please avoid using commas within any field.
                                     </p>
-                                    <button onClick={handleDownloadTemplate} className="text-primary font-semibold hover:underline">
+                                    <button onClick={handleDownloadTemplate} className="text-gold-dark font-semibold hover:underline">
                                         Download CSV Template
                                     </button>
-                                    <div className="flex flex-col items-center justify-center bg-light-gray border-2 border-dashed border-medium-gray rounded-lg p-6 hover:border-primary transition-colors min-h-[10rem]">
+                                    <div className="flex flex-col items-center justify-center bg-brand-light dark:bg-slate-800 border-2 border-dashed border-border-color dark:border-slate-600 rounded-lg p-6 hover:border-gold transition-colors min-h-[10rem]">
                                         <UploadIcon className="mx-auto h-10 w-10 text-gray-400" />
                                         <button
                                             type="button"
                                             onClick={() => fileInputRef.current?.click()}
-                                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white text-secondary font-semibold rounded-lg border border-medium-gray hover:bg-gray-100"
+                                            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-700 text-brand-dark dark:text-white font-semibold rounded-lg border border-border-color dark:border-slate-600 hover:bg-gray-100"
                                         >
                                             <UploadIcon className="w-5 h-5" />
                                             Upload CSV File
@@ -329,12 +329,12 @@ const BulkGeneratorModal: React.FC<BulkGeneratorModalProps> = ({ isOpen, onClose
                             )}
                         </div>
                         
-                        <div className="p-4 bg-light-gray border-t flex justify-end gap-4">
-                            <button onClick={onClose} className="px-6 py-2 bg-white text-secondary font-semibold rounded-lg border border-medium-gray hover:bg-gray-100">Cancel</button>
+                        <div className="p-6 bg-brand-light dark:bg-slate-900/50 border-t dark:border-slate-700 flex justify-end gap-4">
+                            <button onClick={onClose} className="px-6 py-2 bg-white dark:bg-slate-700 text-brand-dark dark:text-white font-semibold rounded-lg border border-border-color dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600">Cancel</button>
                             <button 
                                 onClick={handleGenerateClick}
                                 disabled={isGenerateDisabled()}
-                                className="px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-sky-600 flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                                className="px-6 py-2 bg-gold text-brand-dark font-bold rounded-lg hover:bg-gold-dark flex items-center gap-2 disabled:bg-gray-400 disabled:text-white disabled:cursor-not-allowed"
                             >
                                 <BulkGenerateIcon className="w-5 h-5"/>
                                 Generate All Quotes
@@ -342,21 +342,22 @@ const BulkGeneratorModal: React.FC<BulkGeneratorModalProps> = ({ isOpen, onClose
                         </div>
                     </>
                 )}
+                {/* FIX: Moved the style tag inside the parent div to resolve JSX syntax error. */}
+                <style>{`
+                    .input-field {
+                        padding: 8px 12px;
+                        border: 1px solid #E5E7EB; /* border-color */
+                        border-radius: 8px;
+                        font-size: 14px;
+                        width: 100%;
+                        background-color: #F9FAFB;
+                    }
+                    .dark .input-field {
+                        background-color: #1f2937;
+                        border-color: #374151;
+                    }
+                `}</style>
             </div>
-            <style jsx>{`
-                .input-field {
-                    padding: 8px 12px;
-                    border: 1px solid #E5E7EB; /* medium-gray */
-                    border-radius: 8px;
-                    font-size: 14px;
-                    width: 100%;
-                }
-                .input-field:focus {
-                    outline: none;
-                    border-color: #0EA5E9; /* primary */
-                    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
-                }
-            `}</style>
         </div>
     );
 };

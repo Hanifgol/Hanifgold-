@@ -1,4 +1,8 @@
 
+export interface Adjustment {
+  description: string;
+  amount: number;
+}
 
 export interface Tile {
   category: string;
@@ -8,6 +12,7 @@ export interface Tile {
   unitPrice: number;
   // confidence: number; // Removed as per user request to hide debug info
   size?: string;
+  group?: string; // New: e.g., "Flat 1", "BQ", "General"
 }
 
 export interface Material {
@@ -59,6 +64,18 @@ export interface QuotationData {
   checklist?: ChecklistItem[];
   addCheckmate?: boolean;
   showChecklist?: boolean;
+  showMaterials?: boolean;
+  showAdjustments?: boolean;
+  adjustments: Adjustment[];
+  depositPercentage: number | null;
+  
+  // New granular visibility controls per quotation
+  showBankDetails?: boolean;
+  showTerms?: boolean;
+  showWorkmanship?: boolean;
+  showMaintenance?: boolean;
+  showTax?: boolean;
+  showCostSummary?: boolean;
 }
 
 export interface InvoiceData {
@@ -77,9 +94,9 @@ export interface InvoiceData {
   paymentTerms: string;
   bankDetails: string;
   invoiceNotes: string;
-  discountType: 'none' | 'percentage' | 'amount';
-  discountValue: number;
   paymentDate?: number;
+  showMaterials?: boolean;
+  showAdjustments?: boolean;
 }
 
 export interface Expense {
@@ -99,16 +116,44 @@ export interface Settings {
   sittingRoomTilePrice: number;
   externalWallTilePrice: number;
   stepTilePrice: number;
+  
+  // New Granular Prices
+  bedroomTilePrice: number;
+  toiletWallTilePrice: number;
+  toiletFloorTilePrice: number;
+  kitchenWallTilePrice: number;
+  kitchenFloorTilePrice: number;
+
   cementPrice: number;
   whiteCementPrice: number;
   sharpSandPrice: number;
   workmanshipRate: number;
   wastageFactor: number; // e.g., 1.10 for 10%
+  
+  // New: Size-based pricing rules
+  tilePricesBySize: { size: string; price: number }[];
+
+  // Coverage Rates (m2 per carton)
   wallTileM2PerCarton: number;
   floorTileM2PerCarton: number;
   sittingRoomTileM2PerCarton: number;
+  roomTileM2PerCarton: number;
   externalWallTileM2PerCarton: number;
   stepTileM2PerCarton: number;
+  // New specific areas
+  toiletWallTileM2PerCarton: number;
+  toiletFloorTileM2PerCarton: number;
+  kitchenWallTileM2PerCarton: number;
+  kitchenFloorTileM2PerCarton: number;
+  
+  // New: Default Tile Sizes per Area
+  defaultToiletWallSize: string;
+  defaultToiletFloorSize: string;
+  defaultRoomFloorSize: string;
+  defaultSittingRoomSize: string;
+  defaultKitchenWallSize: string;
+  defaultKitchenFloorSize: string;
+
   taxPercentage: number;
   
   // Display Options
@@ -120,6 +165,9 @@ export interface Settings {
   showTileSize: boolean;
   showTax: boolean;
   showChecklistDefault: boolean;
+  showMaterialsDefault: boolean;
+  showAdjustmentsDefault: boolean;
+  showDeposit: boolean;
 
   // Branding & Company
   companyName: string;
@@ -129,6 +177,7 @@ export interface Settings {
   companyPhone: string;
   documentTitle: string;
   companyLogo: string; // Base64 encoded image
+  companySignature: string; // Base64 encoded image for signature
   accentColor: string;
   headerLayout: 'modern' | 'classic' | 'minimalist';
   footerText: string;
@@ -139,6 +188,7 @@ export interface Settings {
   defaultTermsAndConditions: string;
   defaultExpenseCategories: string[];
   addCheckmateDefault: boolean;
+  defaultDepositPercentage: number;
   
   // Invoicing
   invoicePrefix: string;

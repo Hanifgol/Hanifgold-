@@ -17,7 +17,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ view, setView }) => {
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-white dark:bg-slate-900 border-t border-medium-gray dark:border-slate-700 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-40">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-white dark:bg-brand-dark border-t border-border-color dark:border-slate-700 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-40">
       <nav className="flex justify-around items-center h-full">
         {navItems.map((item) => {
           const isActive = view === item.name;

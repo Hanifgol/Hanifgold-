@@ -47,16 +47,16 @@ const EditChecklistModal: React.FC<EditChecklistModalProps> = ({ isOpen, onClose
 
   if (!isOpen) return null;
   
-  const inputClass = "block w-full px-3 py-2 bg-white border border-medium-gray rounded-lg shadow-sm sm:text-sm focus:ring-primary/80 focus:border-primary transition disabled:bg-gray-100 disabled:text-gray-500";
+  const inputClass = "block w-full px-3 py-2 bg-brand-light dark:bg-slate-800 border border-border-color dark:border-slate-700 rounded-lg shadow-sm sm:text-sm focus:ring-gold/80 focus:border-gold transition disabled:bg-slate-200 dark:disabled:bg-slate-700 disabled:text-gray-500";
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-        <div className="p-6 border-b border-medium-gray">
-          <h2 className="text-xl font-bold text-secondary">Edit Project Checklist</h2>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+        <div className="p-8 border-b border-border-color dark:border-slate-700">
+          <h2 className="text-xl font-bold text-brand-dark dark:text-white">Edit Project Checklist</h2>
           <p className="text-sm text-gray-500">Add, remove, or rephrase tasks for this project.</p>
         </div>
-        <div className="p-6 overflow-y-auto space-y-3">
+        <div className="p-8 overflow-y-auto space-y-3">
           {checklist.map((checklistItem, index) => {
             const isCheckmate = checklistItem.item === 'Checkmate';
             return (
@@ -71,7 +71,7 @@ const EditChecklistModal: React.FC<EditChecklistModalProps> = ({ isOpen, onClose
                 />
                  <button
                     onClick={() => handleRemoveItem(index)}
-                    className="p-2 text-gray-400 hover:text-danger hover:bg-red-100 rounded-full transition-colors flex-shrink-0 disabled:text-gray-300 disabled:hover:bg-transparent"
+                    className="p-2 text-gray-400 hover:text-danger hover:bg-red-100 dark:hover:bg-red-900/50 rounded-full transition-colors flex-shrink-0 disabled:text-gray-300 disabled:hover:bg-transparent"
                     aria-label="Remove task"
                     disabled={isCheckmate}
                   >
@@ -82,24 +82,24 @@ const EditChecklistModal: React.FC<EditChecklistModalProps> = ({ isOpen, onClose
           })}
            <button
             onClick={handleAddItem}
-            className="w-full flex items-center justify-center gap-2 mt-4 px-4 py-2 border-2 border-dashed border-medium-gray text-secondary font-semibold rounded-lg hover:border-primary hover:text-primary transition-colors"
+            className="w-full flex items-center justify-center gap-2 mt-4 px-4 py-2 border-2 border-dashed border-border-color dark:border-slate-600 text-brand-dark dark:text-white font-semibold rounded-lg hover:border-gold hover:text-gold transition-colors"
            >
                 <PlusIcon className="w-5 h-5" />
                 Add New Task
             </button>
         </div>
-        <div className="p-4 bg-light-gray border-t border-medium-gray flex justify-end gap-4 mt-auto">
+        <div className="p-6 bg-brand-light dark:bg-slate-900/50 border-t border-border-color dark:border-slate-700 flex justify-end gap-4 mt-auto">
           <button
             type="button"
             onClick={onClose}
-            className="px-6 py-2 bg-white text-secondary font-semibold rounded-lg border border-medium-gray hover:bg-gray-100 transition-all shadow-sm transform hover:scale-105"
+            className="px-6 py-2 bg-white dark:bg-slate-700 text-brand-dark dark:text-white font-semibold rounded-lg border border-border-color dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600 transition-all shadow-sm"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSaveChanges}
-            className="px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-sky-600 transition-all shadow-md transform hover:scale-105"
+            className="px-6 py-2 bg-gold text-brand-dark font-bold rounded-lg hover:bg-gold-dark transition-all shadow-md"
           >
             Save Changes
           </button>

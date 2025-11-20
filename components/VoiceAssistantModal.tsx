@@ -132,10 +132,10 @@ const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({ isOpen, onClo
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
-        <div className="p-6 border-b border-medium-gray flex justify-between items-center">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-lg w-full">
+        <div className="p-6 border-b border-border-color dark:border-slate-700 flex justify-between items-center">
             <div>
-                <h2 className="text-xl font-bold text-secondary">Voice Assistant</h2>
+                <h2 className="text-xl font-bold text-brand-dark dark:text-white">Voice Assistant</h2>
                 <p className="text-sm text-gray-500">Use your voice to control the app.</p>
             </div>
              <button onClick={onClose} className="p-2 text-gray-400 hover:text-danger hover:bg-red-100 rounded-full">
@@ -146,15 +146,15 @@ const VoiceAssistantModal: React.FC<VoiceAssistantModalProps> = ({ isOpen, onClo
             <button 
                 onClick={handleStartListening}
                 disabled={isListening}
-                className={`mx-auto w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 ${isListening ? 'bg-danger animate-pulse' : 'bg-primary hover:bg-sky-600'}`}
+                className={`mx-auto w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 ${isListening ? 'bg-danger animate-pulse' : 'bg-gold hover:bg-gold-dark'}`}
             >
                 <MicrophoneIcon className="w-12 h-12 text-white" />
             </button>
-            <p className={`mt-6 text-lg font-medium h-8 ${isListening ? 'text-dark-gray' : 'text-gray-400'}`}>
+            <p className={`mt-6 text-lg font-medium h-8 ${isListening ? 'text-brand-dark dark:text-white' : 'text-gray-400'}`}>
                 {isListening ? "Listening..." : "Click to start"}
             </p>
-            <div className="mt-4 min-h-[5rem] bg-light-gray p-4 rounded-lg border border-medium-gray">
-                <p className="text-dark-gray text-left">{transcript || "Your command will appear here..."}</p>
+            <div className="mt-4 min-h-[5rem] bg-brand-light dark:bg-slate-800 p-4 rounded-lg border border-border-color dark:border-slate-700">
+                <p className="text-brand-dark dark:text-slate-200 text-left">{transcript || "Your command will appear here..."}</p>
                  {error && <p className="text-danger text-sm mt-2">{error}</p>}
             </div>
             <div className="mt-4 text-xs text-gray-500 text-left">
