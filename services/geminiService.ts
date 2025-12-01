@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type, Modality } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/generative-ai";
 import { Settings, QuotationData } from '../types';
 
 // Lazy initialization of the AI client
