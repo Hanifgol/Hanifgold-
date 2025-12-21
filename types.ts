@@ -28,12 +28,14 @@ export interface Client {
   name: string;
   address: string;
   phone: string;
+  email?: string; // Added email field
 }
 
 export interface ClientDetails {
   clientName: string;
   clientAddress: string;
   clientPhone: string;
+  clientEmail?: string; // Added email field
   projectName: string;
   showClientName: boolean;
   showClientAddress: boolean;
@@ -60,6 +62,9 @@ export interface QuotationData {
   // This field is for user-provided terms and will be populated by the AI
   termsAndConditions?: string;
   invoiceId?: string;
+  // Fix: Added optional invoiceNumber and dueDate to support display of invoiced quotations in the UI
+  invoiceNumber?: string;
+  dueDate?: number;
   isBulkGenerated?: boolean;
   checklist?: ChecklistItem[];
   addCheckmate?: boolean;

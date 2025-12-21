@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Client } from '../types';
 
@@ -8,14 +9,14 @@ interface ClientModalProps {
   clientToEdit: Client | null;
 }
 
-const defaultClientState = { id: '', name: '', address: '', phone: '' };
+const defaultClientState: Client = { id: '', name: '', address: '', phone: '', email: '' };
 
 const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSave, clientToEdit }) => {
   const [client, setClient] = useState<Client>(defaultClientState);
 
   useEffect(() => {
     if (clientToEdit) {
-      setClient(clientToEdit);
+      setClient({ ...defaultClientState, ...clientToEdit });
     } else {
       setClient(defaultClientState);
     }
@@ -37,7 +38,7 @@ const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSave, clie
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" aria-modal="true" role="dialog">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full animate-fade-in">
         <div className="p-8 border-b border-border-color dark:border-slate-700">
           <h2 className="text-xl font-bold text-brand-dark dark:text-white">{clientToEdit ? 'Edit Client' : 'Add New Client'}</h2>
           <p className="text-sm text-gray-500">Enter the client's contact information.</p>
@@ -56,14 +57,14 @@ const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSave, clie
             />
           </div>
           <div>
-            <label htmlFor="address" className="block text-sm font-bold text-brand-dark dark:text-slate-200">Address</label>
+            <label htmlFor="email" className="block text-sm font-bold text-brand-dark dark:text-slate-200">Email Address</label>
             <input
-              type="text"
-              id="address"
-              name="address"
-              value={client.address}
+              type="email"
+              id="email"
+              name="email"
+              value={client.email || ''}
               onChange={handleChange}
-              placeholder="e.g., 123 Banana Island, Lagos"
+              placeholder="e.g., john@example.com"
               className={inputClass}
             />
           </div>
@@ -76,6 +77,18 @@ const ClientModal: React.FC<ClientModalProps> = ({ isOpen, onClose, onSave, clie
               value={client.phone}
               onChange={handleChange}
               placeholder="e.g., 08012345678"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="address" className="block text-sm font-bold text-brand-dark dark:text-slate-200">Address</label>
+            <input
+              type="text"
+              id="address"
+              name="address"
+              value={client.address}
+              onChange={handleChange}
+              placeholder="e.g., 123 Banana Island, Lagos"
               className={inputClass}
             />
           </div>

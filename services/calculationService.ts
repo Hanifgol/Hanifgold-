@@ -6,7 +6,23 @@ import { QuotationData, InvoiceData, Settings } from '../types';
  * This ensures consistency across the entire application (display, history, exports, etc.).
  * It safely handles potentially non-numeric data by casting values to Number.
  */
-export const calculateTotals = (data: QuotationData | InvoiceData, settings: Settings) => {
+export const calculateTotals = (data: QuotationData | InvoiceData | null, settings: Settings) => {
+    if (!data) {
+        return {
+            totalSqm: 0,
+            totalTileCost: 0,
+            totalMaterialCost: 0,
+            workmanshipCost: 0,
+            workmanshipAndMaintenance: 0,
+            profitAmount: 0,
+            subtotal: 0,
+            totalAdjustments: 0,
+            taxAmount: 0,
+            grandTotal: 0,
+            depositAmount: 0
+        };
+    }
+
     const { tiles, materials, workmanshipRate, maintenance, profitPercentage } = data;
     
     // Flags logic: prefer data property if present, else fallback to settings or default.

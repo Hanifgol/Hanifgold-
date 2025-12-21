@@ -1,9 +1,8 @@
 
-
 import React, { useState, useMemo } from 'react';
 import { InvoiceData, Settings } from '../types';
-import { ViewIcon, DeleteIcon, PdfIcon, ArrowUpIcon, ArrowDownIcon, FileTextIcon, CheckCircleIcon, EditIcon } from './icons';
-import { exportInvoiceToPdf } from '../services/exportService';
+import { ViewIcon, DeleteIcon, PdfIcon, ArrowUpIcon, ArrowDownIcon, FileTextIcon, CheckCircleIcon, EditIcon, WhatsAppIcon } from './icons';
+import { exportInvoiceToPdf, shareInvoiceToWhatsApp } from '../services/exportService';
 import { calculateTotals } from '../services/calculationService';
 
 interface InvoicesProps {
@@ -155,6 +154,9 @@ const Invoices: React.FC<InvoicesProps> = ({ invoices, settings, onEdit, onDelet
                       </div>
                       <div className="w-9 h-9 flex items-center justify-center">
                           <button onClick={() => onEdit(inv.id)} className="p-2 text-gray-500 hover:text-gold-dark hover:bg-gold-light rounded-full transition-colors" title="View/Edit"><EditIcon className="w-5 h-5"/></button>
+                      </div>
+                      <div className="w-9 h-9 flex items-center justify-center">
+                          <button onClick={() => shareInvoiceToWhatsApp(inv, settings)} className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors" title="Send WhatsApp"><WhatsAppIcon className="w-5 h-5"/></button>
                       </div>
                       <div className="w-9 h-9 flex items-center justify-center">
                           <button onClick={async () => await exportInvoiceToPdf(inv, settings)} className="p-2 text-gray-500 hover:text-orange-500 hover:bg-orange-100 rounded-full transition-colors" title="Download PDF"><PdfIcon className="w-5 h-5"/></button>

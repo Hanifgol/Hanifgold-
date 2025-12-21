@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, Type, Modality } from "@google/generative-ai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { Settings, QuotationData } from '../types';
 
 // Lazy initialization of the AI client
@@ -43,7 +43,8 @@ export const getTextFromImageAI = async (imageFile: File): Promise<string> => {
         const ai = getAiClient();
         const imagePart = await fileToGenerativePart(imageFile);
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            // Use gemini-3-flash-preview for general text/vision tasks
+            model: 'gemini-3-flash-preview',
             contents: { parts: [
                 imagePart,
                 { text: "Extract all text from this image of handwritten or printed notes for a tiling job. Present the text clearly." }
@@ -294,7 +295,8 @@ export const generateQuotationFromAI = async (inputText: string, settings: Setti
     try {
         const ai = getAiClient();
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            // Use gemini-3-flash-preview for structured text generation tasks
+            model: 'gemini-3-flash-preview',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -351,7 +353,8 @@ export const getAiSummaryForTts = async (quotation: QuotationData, grandTotal: n
     try {
         const ai = getAiClient();
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            // Use gemini-3-flash-preview for conversational summarization
+            model: 'gemini-3-flash-preview',
             contents: prompt,
         });
         return response.text.trim();

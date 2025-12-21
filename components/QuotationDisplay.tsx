@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { QuotationData, Settings, Tile, Material, ChecklistItem, Adjustment } from '../types';
-import { HanifgoldLogoIcon, SpeakerIcon, PlusIcon, EditIcon, ExportIcon, CsvIcon, CheckCircleIcon, CorporateIcon, MinimalistIcon, WordIcon, PdfIcon, CheckmateIcon, ShareIcon, MailIcon, SettingsIcon } from './icons';
+import { HanifgoldLogoIcon, SpeakerIcon, PlusIcon, EditIcon, ExportIcon, CsvIcon, CheckCircleIcon, CorporateIcon, MinimalistIcon, WordIcon, PdfIcon, CheckmateIcon, ShareIcon, MailIcon, ViewIcon } from './icons';
 import LoadingSpinner from './LoadingSpinner';
 import { generateSpeechFromText, getAiSummaryForTts } from '../services/geminiService';
 import { exportToPdf, exportToExcel, exportToWord, exportToCsv } from '../services/exportService';
@@ -43,6 +43,7 @@ interface QuotationDisplayProps {
   isLoading: boolean;
   settings: Settings;
   onAddMaterial: () => void;
+  onEditMaterials: () => void;
   onEditTiles: () => void;
   onEditChecklist: () => void;
   onAddAdjustment: () => void;
@@ -58,13 +59,15 @@ const formatCurrency = (amount: number) => {
 };
 
 
-const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, settings, onAddMaterial, onEditTiles, onEditChecklist, onAddAdjustment, onUpdate }) => {
+const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, settings, onAddMaterial, onEditMaterials, onEditTiles, onEditChecklist, onAddAdjustment, onUpdate }) => {
     const [previewStyle, setPreviewStyle] = useState<'corporate' | 'minimalist'>('corporate');
     const [isTtsLoading, setIsTtsLoading] = useState(false);
     const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
-    const [isSummaryConfigOpen, setIsSummaryConfigOpen] = useState(false);
+    const [isViewMenuOpen, setIsViewMenuOpen] = useState(false);
+
     const exportMenuRef = useRef<HTMLDivElement>(null);
-    const summaryConfigRef = useRef<HTMLDivElement>(null);
+    const viewMenuRef = useRef<HTMLDivElement>(null);
+
     const { 
         showMaintenance: showMaintenanceGlobal, 
         showSubtotal, 
@@ -82,8 +85,8 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
             if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
                 setIsExportMenuOpen(false);
             }
-             if (summaryConfigRef.current && !summaryConfigRef.current.contains(event.target as Node)) {
-                setIsSummaryConfigOpen(false);
+            if (viewMenuRef.current && !viewMenuRef.current.contains(event.target as Node)) {
+                setIsViewMenuOpen(false);
             }
         };
         document.addEventListener('mousedown', handleClickOutside);
@@ -219,9 +222,9 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
         if (isLoading) {
             return (
                 <div className="flex flex-col items-center justify-center h-full p-12 text-center">
-                    <div className="w-12 h-12 border-4 border-gold/20 border-t-gold rounded-full animate-spin mb-4"></div>
-                    <p className="text-brand-dark dark:text-white font-medium text-lg">Analyzing details...</p>
-                    <p className="text-gray-500 text-sm">AI is processing your input.</p>
+                    <div className="w-16 h-16 border-4 border-gold/20 border-t-gold rounded-full animate-spin mb-4 shadow-lg"></div>
+                    <p className="text-brand-dark dark:text-white font-bold text-lg">Generating Quote...</p>
+                    <p className="text-gray-400 text-sm mt-2">Analyzing notes and calculating costs.</p>
                 </div>
             );
         }
@@ -229,12 +232,12 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
         if (!data) {
             return (
                 <div className="flex flex-col items-center justify-center h-full text-center p-12">
-                    <div className="bg-white dark:bg-surface-dark p-6 rounded-full mb-4 border border-border-color shadow-sm">
-                         <HanifgoldLogoIcon className="w-16 h-16 opacity-50 grayscale" />
+                    <div className="bg-white/50 dark:bg-white/5 p-8 rounded-3xl mb-6 backdrop-blur-sm border border-white/20 dark:border-white/5 shadow-xl">
+                         <HanifgoldLogoIcon className="w-24 h-24 opacity-40 grayscale" />
                     </div>
-                    <h2 className="text-xl font-bold text-gray-400 dark:text-gray-500 mb-2">Document Preview</h2>
+                    <h2 className="text-2xl font-bold text-gray-400 dark:text-gray-500 mb-2">Ready to Generate</h2>
                     <p className="text-gray-400 text-sm max-w-xs leading-relaxed">
-                        Generated quotations will appear here in a print-ready format.
+                        Enter your job notes on the left to create a professional, print-ready quotation.
                     </p>
                 </div>
             );
@@ -281,7 +284,7 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
 
         const ToggleSwitch = ({ id, checked, onChange, label }: { id: string, checked: boolean, onChange: (c: boolean) => void, label: string }) => (
             <div className="flex items-center gap-2">
-                <label htmlFor={id} className="text-xs font-semibold cursor-pointer select-none text-gray-500 hover:text-brand-dark transition-colors">{label}</label>
+                {label && <label htmlFor={id} className="text-xs font-semibold cursor-pointer select-none text-gray-500 hover:text-brand-dark transition-colors">{label}</label>}
                 <label className="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id={id} className="sr-only peer" checked={checked} onChange={(e) => onChange(e.target.checked)} />
                     <div className="w-8 h-4 bg-gray-200 rounded-full peer peer-focus:ring-2 peer-focus:ring-gold/50 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-gold"></div>
@@ -292,44 +295,105 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
 
         return (
             <div className="flex flex-col w-full max-w-[210mm]">
-                {/* Controls Toolbar */}
-                <div className="sticky top-0 z-20 glass-panel p-3 rounded-xl mb-6 flex flex-wrap items-center justify-between gap-4 shadow-soft mx-auto w-full">
-                     <div className="flex items-center gap-3">
-                        <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg border border-gray-200 dark:border-gray-700">
-                            <button onClick={() => setPreviewStyle('corporate')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${previewStyle === 'corporate' ? 'bg-white dark:bg-gray-600 shadow text-brand-dark dark:text-white' : 'text-gray-500'}`}>Classic</button>
-                            <button onClick={() => setPreviewStyle('minimalist')} className={`px-3 py-1.5 rounded-md text-xs font-bold transition-all ${previewStyle === 'minimalist' ? 'bg-white dark:bg-gray-600 shadow text-brand-dark dark:text-white' : 'text-gray-500'}`}>Clean</button>
-                        </div>
-                        <StatusIndicator />
-                     </div>
+                {/* Controls Toolbar - Floating Glass Pill */}
+                <div className="sticky top-2 z-30 mx-auto w-full max-w-3xl">
+                    <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-2 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-lg border border-white/20 dark:border-white/10 ring-1 ring-black/5">
+                         <div className="flex items-center gap-3 pl-2">
+                            <div className="flex bg-gray-100 dark:bg-slate-700 p-1 rounded-lg">
+                                <button onClick={() => setPreviewStyle('corporate')} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${previewStyle === 'corporate' ? 'bg-white dark:bg-gray-600 shadow-sm text-brand-dark dark:text-white' : 'text-gray-400'}`}>Classic</button>
+                                <button onClick={() => setPreviewStyle('minimalist')} className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${previewStyle === 'minimalist' ? 'bg-white dark:bg-gray-600 shadow-sm text-brand-dark dark:text-white' : 'text-gray-400'}`}>Clean</button>
+                            </div>
+                            <StatusIndicator />
+                         </div>
 
-                     <div className="flex items-center gap-2">
-                        <button onClick={handleReadAloud} disabled={isTtsLoading} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors border border-transparent hover:border-gray-200" title="Read Aloud">
-                             {isTtsLoading ? <LoadingSpinner /> : <SpeakerIcon className="w-4 h-4" />}
-                        </button>
-                        <div className="relative" ref={exportMenuRef}>
-                            <button onClick={() => setIsExportMenuOpen(prev => !prev)} className="flex items-center gap-2 px-4 py-2 bg-brand-dark text-white font-bold text-xs rounded-lg hover:bg-black transition-all shadow-md">
-                                <ExportIcon className="w-3 h-3" /> Export / Share
+                         <div className="flex items-center gap-1">
+                            {/* Visibility Menu */}
+                            <div className="relative" ref={viewMenuRef}>
+                                <button
+                                    onClick={() => setIsViewMenuOpen(!isViewMenuOpen)}
+                                    className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 transition-colors flex items-center gap-2"
+                                    title="View Options"
+                                >
+                                    <ViewIcon className="w-5 h-5" />
+                                </button>
+
+                                {isViewMenuOpen && (
+                                    <div className="absolute right-0 mt-4 w-64 bg-white dark:bg-surface-dark rounded-2xl shadow-2xl z-40 border border-gray-100 dark:border-slate-700 animate-fade-in p-4 ring-1 ring-black/5">
+                                         <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 border-b border-gray-100 dark:border-gray-700 pb-2">Section Visibility</h4>
+                                         <div className="space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Materials</span>
+                                                <ToggleSwitch id="menuShowMaterials" checked={showMaterials ?? true} onChange={handleShowMaterialsToggle} label="" />
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Adjustments</span>
+                                                <ToggleSwitch id="menuShowAdjustments" checked={showAdjustments ?? true} onChange={handleShowAdjustmentsToggle} label="" />
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Checklist</span>
+                                                <ToggleSwitch id="menuShowChecklist" checked={showChecklist ?? true} onChange={handleShowChecklistToggle} label="" />
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Cost Summary</span>
+                                                <ToggleSwitch id="menuShowCostSummary" checked={showCostSummary ?? true} onChange={handleShowCostSummaryToggle} label="" />
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Bank Details</span>
+                                                <ToggleSwitch id="menuShowBankDetails" checked={showBankDetails ?? true} onChange={handleShowBankDetailsToggle} label="" />
+                                            </div>
+                                             <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Terms</span>
+                                                <ToggleSwitch id="menuShowTerms" checked={showTerms ?? showTermsGlobal} onChange={handleShowTermsToggle} label="" />
+                                            </div>
+                                         </div>
+                                         
+                                         <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 mt-4 border-b border-gray-100 dark:border-gray-700 pb-2">Cost Breakdown Details</h4>
+                                         <div className="space-y-3">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Workmanship</span>
+                                                <ToggleSwitch id="menuShowWorkmanship" checked={showWorkmanship ?? true} onChange={handleShowWorkmanshipToggle} label="" />
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Maintenance</span>
+                                                <ToggleSwitch id="menuShowMaintenance" checked={showMaintenance ?? showMaintenanceGlobal} onChange={handleShowMaintenanceToggle} label="" />
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tax</span>
+                                                <ToggleSwitch id="menuShowTax" checked={showTax ?? showTaxGlobal} onChange={handleShowTaxToggle} label="" />
+                                            </div>
+                                         </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <button onClick={handleReadAloud} disabled={isTtsLoading} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-500 transition-colors" title="Read Aloud">
+                                 {isTtsLoading ? <LoadingSpinner /> : <SpeakerIcon className="w-5 h-5" />}
                             </button>
-                             {isExportMenuOpen && (
-                                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-surface-dark rounded-xl shadow-xl z-30 border border-border-color dark:border-border-dark animate-fade-in p-1">
-                                    <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Format</div>
-                                    <button onClick={() => { exportToPdf(data, settings); setIsExportMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"><PdfIcon className="w-4 h-4 text-red-500"/> PDF Document</button>
-                                    <button onClick={async () => { await exportToWord(data, settings); setIsExportMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"><WordIcon className="w-4 h-4 text-blue-600"/> Word (.docx)</button>
-                                    <div className="my-1 border-t border-gray-100 dark:border-slate-700"></div>
-                                    <button onClick={handleShare} className="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200"><MailIcon className="w-4 h-4 text-gray-400"/> Email Quote</button>
+                            <div className="relative" ref={exportMenuRef}>
+                                <button onClick={() => setIsExportMenuOpen(prev => !prev)} className="flex items-center gap-2 px-4 py-2 bg-brand-dark text-white font-bold text-xs rounded-xl hover:bg-black transition-all shadow-md hover:shadow-lg">
+                                    <ExportIcon className="w-3.5 h-3.5" /> Export
+                                </button>
+                                 {isExportMenuOpen && (
+                                    <div className="absolute right-0 mt-4 w-64 bg-white dark:bg-surface-dark rounded-2xl shadow-2xl z-40 border border-gray-100 dark:border-slate-700 animate-fade-in p-2 ring-1 ring-black/5">
+                                        <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Download Format</div>
+                                        <button onClick={() => { exportToPdf(data, settings); setIsExportMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"><PdfIcon className="w-5 h-5 text-red-500"/> PDF Document</button>
+                                        <button onClick={async () => { await exportToWord(data, settings); setIsExportMenuOpen(false); }} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"><WordIcon className="w-5 h-5 text-blue-600"/> Word (.docx)</button>
+                                        <div className="my-2 border-t border-gray-100 dark:border-slate-700"></div>
+                                        <button onClick={handleShare} className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"><MailIcon className="w-5 h-5 text-gray-400"/> Email Quote</button>
+                                    </div>
+                                )}
+                            </div>
+                            {status === 'Pending' && (
+                                <div className="flex gap-1 ml-2 pl-2 border-l border-gray-200 dark:border-gray-700">
+                                    <button onClick={() => handleStatusChange('Accepted')} className="p-2 bg-green-50 text-green-600 rounded-xl hover:bg-green-100 transition-colors" title="Accept"><CheckCircleIcon className="w-5 h-5"/></button>
                                 </div>
                             )}
-                        </div>
-                        {status === 'Pending' && (
-                            <div className="flex gap-1 ml-2">
-                                <button onClick={() => handleStatusChange('Accepted')} className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors shadow-sm" title="Accept"><CheckCircleIcon className="w-4 h-4"/></button>
-                            </div>
-                        )}
-                     </div>
+                         </div>
+                    </div>
                 </div>
 
                 {/* The Paper Document */}
-                <div id="quotation-output" className="paper-sheet rounded-lg p-12 text-slate-800 relative mb-12">
+                <div id="quotation-output" className="paper-sheet rounded-lg p-12 text-slate-800 relative mb-12 mt-6 transform transition-transform hover:scale-[1.005] duration-500">
                     {renderHeader()}
                     
                     <div className="flex flex-col sm:flex-row justify-between sm:items-start mb-10 gap-8">
@@ -411,7 +475,15 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
                         <div className="flex justify-between items-center mb-3 border-b border-gray-200 pb-2">
                              <h3 className="text-md font-bold text-brand-dark font-serif tracking-tight"><span className="text-gold font-sans mr-2">{getSectionNumber()}.</span>Materials</h3>
                              <div className="flex items-center gap-3 print:hidden relative z-20">
-                                <ToggleSwitch id="showMaterialsToggle" checked={showMaterials ?? true} onChange={handleShowMaterialsToggle} label="Show" />
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onEditMaterials();
+                                    }} 
+                                    className="text-xs font-bold text-gold-dark hover:text-white hover:bg-gold bg-gold-light border border-gold/20 px-3 py-1.5 rounded-full flex items-center gap-1 transition-all uppercase tracking-wide shadow-sm"
+                                >
+                                    <EditIcon className="w-3 h-3" /> Edit
+                                </button>
                                 <button 
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -454,7 +526,6 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
                             <div className="flex justify-between items-center mb-3 border-b border-gray-200 pb-2">
                                 <h3 className="text-md font-bold text-brand-dark font-serif tracking-tight"><span className="text-gold font-sans mr-2">{getSectionNumber()}.</span>Adjustments</h3>
                                 <div className="flex items-center gap-3 print:hidden relative z-20">
-                                    <ToggleSwitch id="showAdjustmentsToggle" checked={showAdjustments ?? true} onChange={handleShowAdjustmentsToggle} label="Show" />
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -484,7 +555,6 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
                             <div className="flex justify-between items-center mb-3 border-b border-gray-200 pb-2">
                                 <h3 className="text-md font-bold text-brand-dark font-serif tracking-tight"><span className="text-gold font-sans mr-2">{getSectionNumber()}.</span>Checklist</h3>
                                 <div className="flex items-center gap-3 print:hidden relative z-20">
-                                     <ToggleSwitch id="showChecklistToggle" checked={showChecklist ?? true} onChange={handleShowChecklistToggle} label="Show" />
                                      <ToggleSwitch id="checkmateToggle" checked={addCheckmate ?? true} onChange={handleAddCheckmateToggle} label="Checkmate" />
                                     <button 
                                         onClick={(e) => {
@@ -523,24 +593,6 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
                             <div className="bg-brand-dark text-white p-6 rounded-xl shadow-paper relative overflow-hidden">
                                 <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
                                     <h3 className="text-lg font-bold font-serif text-gold tracking-tight">Estimate Summary</h3>
-                                    <div className="flex items-center gap-3 print:hidden relative z-20">
-                                        <div className="relative" ref={summaryConfigRef}>
-                                            <button onClick={() => setIsSummaryConfigOpen(!isSummaryConfigOpen)} className="p-1 bg-white/10 hover:bg-white/20 rounded text-white transition-colors">
-                                                <SettingsIcon className="w-4 h-4" />
-                                            </button>
-                                            {isSummaryConfigOpen && (
-                                                <div className="absolute right-0 top-8 bg-white rounded-lg shadow-xl border border-gray-200 p-3 w-48 z-50 animate-fade-in text-slate-800">
-                                                    <h4 className="text-[10px] font-bold text-gray-400 uppercase mb-2">Visibility</h4>
-                                                    <div className="space-y-2">
-                                                        <ToggleSwitch id="showCostSummary" checked={showCostSummary ?? true} onChange={handleShowCostSummaryToggle} label="Entire Section" />
-                                                        <ToggleSwitch id="showWorkmanship" checked={showWorkmanship ?? true} onChange={handleShowWorkmanshipToggle} label="Workmanship" />
-                                                        <ToggleSwitch id="showMaintenance" checked={showMaintenance ?? showMaintenanceGlobal} onChange={handleShowMaintenanceToggle} label="Maintenance" />
-                                                        <ToggleSwitch id="showTax" checked={showTax ?? showTaxGlobal} onChange={handleShowTaxToggle} label="Tax" />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
                                 </div>
 
                                 {(showCostSummary ?? true) ? (
@@ -582,9 +634,6 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
                             {/* Bank Details */}
                             {settings.defaultBankDetails && (showBankDetails ?? true) && (
                                 <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200 relative group z-10">
-                                    <div className="absolute top-2 right-2 print:hidden opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <ToggleSwitch id="showBankDetails" checked={showBankDetails ?? true} onChange={handleShowBankDetailsToggle} label="Hide" />
-                                    </div>
                                     <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Payment Info</h4>
                                     <pre className="whitespace-pre-wrap text-xs text-slate-700 font-sans leading-relaxed">{settings.defaultBankDetails}</pre>
                                 </div>
@@ -596,9 +645,6 @@ const QuotationDisplay: React.FC<QuotationDisplayProps> = ({ data, isLoading, se
                     <section className="mt-auto pt-6 border-t border-gray-200 relative z-10">
                          <div className="flex justify-between items-center mb-1">
                              <h3 className="text-[10px] font-bold text-gray-500 uppercase">Terms & Conditions</h3>
-                             <div className="print:hidden">
-                                <ToggleSwitch id="showTerms" checked={showTerms ?? showTermsGlobal} onChange={handleShowTermsToggle} label="Show" />
-                             </div>
                          </div>
                         {(showTerms ?? showTermsGlobal) ? (
                              <textarea

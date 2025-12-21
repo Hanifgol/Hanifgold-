@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { InvoiceData, Settings } from '../types';
 import { RemoveIcon, DollarSignIcon } from './icons';
@@ -11,31 +9,33 @@ interface InvoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (invoice: InvoiceData) => void;
-  invoice: InvoiceData;
+  invoice: InvoiceData | null;
   settings: Settings;
 }
 
 const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, invoice, settings }) => {
-  const [localInvoice, setLocalInvoice] = useState<InvoiceData>(invoice);
+  const [localInvoice, setLocalInvoice] = useState<InvoiceData | null>(invoice);
 
   useEffect(() => {
     setLocalInvoice(invoice);
   }, [invoice, isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    if (!localInvoice) return;
     const { name, value, type } = e.target;
     if (type === 'date') {
         const date = new Date(value);
-        setLocalInvoice(prev => ({ ...prev, [name]: date.getTime() }));
+        setLocalInvoice(prev => prev ? ({ ...prev, [name]: date.getTime() }) : null);
     } else if (type === 'number') {
-        setLocalInvoice(prev => ({...prev, [name]: parseFloat(value) || 0}));
+        setLocalInvoice(prev => prev ? ({...prev, [name]: parseFloat(value) || 0}) : null);
     } else {
-        setLocalInvoice(prev => ({ ...prev, [name]: value }));
+        setLocalInvoice(prev => prev ? ({ ...prev, [name]: value }) : null);
     }
   };
   
   const handleMarkAsPaid = () => {
-      setLocalInvoice(prev => ({ ...prev, status: 'Paid', paymentDate: Date.now() }));
+      if (!localInvoice) return;
+      setLocalInvoice(prev => prev ? ({ ...prev, status: 'Paid', paymentDate: Date.now() }) : null);
   }
 
   const totals = useMemo(() => {
@@ -49,25 +49,12 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
   }, [localInvoice, settings]);
 
   const handleSave = () => {
-    onSave(localInvoice);
+    if (localInvoice) {
+      onSave(localInvoice);
+    }
   };
   
-  if (!isOpen) return null;
-
-  const renderInput = (name: keyof InvoiceData, label: string, type: string = 'text', props = {}) => (
-    <div>
-      <label htmlFor={name} className="block text-sm font-bold text-brand-dark dark:text-slate-200">{label}</label>
-      <input
-        type={type}
-        id={name}
-        name={name}
-        value={localInvoice[name] as any}
-        onChange={handleChange}
-        className="mt-1 block w-full px-3 py-2 bg-brand-light dark:bg-slate-800 border border-border-color dark:border-slate-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gold/80 focus:border-gold sm:text-sm transition"
-        {...props}
-      />
-    </div>
-  );
+  if (!isOpen || !localInvoice) return null;
 
   const formatDateForInput = (timestamp: number) => new Date(timestamp).toISOString().split('T')[0];
 

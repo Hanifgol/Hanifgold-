@@ -1,9 +1,8 @@
 
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { QuotationData, Settings } from '../types';
-import { ViewIcon, DeleteIcon, DuplicateIcon, PdfIcon, ArrowUpIcon, ArrowDownIcon, FileTextIcon, InvoiceIcon, ChevronDownIcon } from './icons';
-import { exportToPdf } from '../services/exportService';
+import { ViewIcon, DeleteIcon, DuplicateIcon, PdfIcon, ArrowUpIcon, ArrowDownIcon, FileTextIcon, InvoiceIcon, ChevronDownIcon, WhatsAppIcon, ZipIcon, CheckCircleIcon, RemoveIcon } from './icons';
+import { exportToPdf, shareQuotationToWhatsApp, exportQuotesToZip } from '../services/exportService';
 import { calculateTotals } from '../services/calculationService';
 
 interface HistoryProps {
@@ -11,7 +10,9 @@ interface HistoryProps {
   onView: (id: string) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
+  onBulkDelete: (ids: string[]) => void;
   onUpdateStatus: (updatedQuotation: QuotationData) => void;
+  onBulkUpdateStatus: (ids: string[], status: QuotationData['status']) => void;
   onConvertToInvoice: (id: string) => void;
   settings: Settings;
   activeFilterIds: string[] | null;
@@ -84,12 +85,15 @@ const StatusControl: React.FC<{
 };
 
 const History: React.FC<HistoryProps> = ({ 
-  quotations, onView, onDuplicate, onDelete, onUpdateStatus, onConvertToInvoice, settings, activeFilterIds, onFilterChange 
+  quotations, onView, onDuplicate, onDelete, onBulkDelete, onUpdateStatus, onBulkUpdateStatus, onConvertToInvoice, settings, activeFilterIds, onFilterChange 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showBulkOnly, setShowBulkOnly] = useState(false);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' }>({ key: 'date', direction: 'desc' });
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkStatusOpen, setIsBulkStatusOpen] = useState(false);
+  const bulkStatusRef = useRef<HTMLDivElement>(null);
   
   const sortedAndFilteredQuotations = useMemo(() => {
     let filtered;
@@ -140,6 +144,53 @@ const History: React.FC<HistoryProps> = ({
     return filtered;
   }, [quotations, searchTerm, statusFilter, sortConfig, settings, showBulkOnly, activeFilterIds]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (bulkStatusRef.current && !bulkStatusRef.current.contains(event.target as Node)) {
+            setIsBulkStatusOpen(false);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === sortedAndFilteredQuotations.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(sortedAndFilteredQuotations.map(q => q.id)));
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkStatusChange = (status: QuotationData['status']) => {
+    onBulkUpdateStatus(Array.from(selectedIds), status);
+    setSelectedIds(new Set());
+    setIsBulkStatusOpen(false);
+  };
+
+  const handleBulkDelete = () => {
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.size} quotations?`)) {
+      onBulkDelete(Array.from(selectedIds));
+      setSelectedIds(new Set());
+    }
+  };
+
+  const handleBulkZip = () => {
+    const selectedQuotes = quotations.filter(q => selectedIds.has(q.id));
+    exportQuotesToZip(selectedQuotes, settings);
+    setSelectedIds(new Set());
+  };
+
   const requestSort = (key: string) => {
     onFilterChange();
     let direction: 'asc' | 'desc' = 'asc';
@@ -162,7 +213,7 @@ const History: React.FC<HistoryProps> = ({
   }
   
   return (
-    <div className="bg-brand-light dark:bg-slate-900/50 p-8 rounded-2xl border border-gold-light dark:border-slate-700 shadow-lg space-y-8">
+    <div className="bg-brand-light dark:bg-slate-900/50 p-8 rounded-2xl border border-gold-light dark:border-slate-700 shadow-lg space-y-8 relative pb-24">
       <div>
         <h1 className="text-3xl font-bold text-brand-dark dark:text-white">Quotation History</h1>
         <p className="text-gray-500">Manage and track all your saved quotations.</p>
@@ -198,6 +249,14 @@ const History: React.FC<HistoryProps> = ({
         <table className="w-full text-sm text-left">
           <thead className="bg-brand-dark text-white text-xs uppercase">
             <tr>
+              <th className="p-4 w-10">
+                <input 
+                  type="checkbox" 
+                  checked={sortedAndFilteredQuotations.length > 0 && selectedIds.size === sortedAndFilteredQuotations.length}
+                  onChange={toggleSelectAll}
+                  className="h-4 w-4 rounded border-gray-300 text-gold focus:ring-gold cursor-pointer"
+                />
+              </th>
               <SortableHeader sortKey="clientName" label="Client / Project" />
               <SortableHeader sortKey="date" label="Date" />
               <th className="p-4 font-semibold">Status</th>
@@ -207,7 +266,15 @@ const History: React.FC<HistoryProps> = ({
           </thead>
           <tbody className="divide-y divide-border-color dark:divide-slate-700">
             {sortedAndFilteredQuotations.map(q => (
-              <tr key={q.id} className={`bg-white dark:bg-slate-800 hover:bg-gold-lightest dark:hover:bg-slate-700 transition-colors ${activeFilterIds?.includes(q.id) ? 'bg-gold-light' : ''}`}>
+              <tr key={q.id} className={`bg-white dark:bg-slate-800 hover:bg-gold-lightest dark:hover:bg-slate-700 transition-colors ${selectedIds.has(q.id) ? 'bg-gold-light/20 dark:bg-gold/5' : ''} ${activeFilterIds?.includes(q.id) ? 'bg-gold-light' : ''}`}>
+                <td className="p-4">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedIds.has(q.id)}
+                    onChange={() => toggleSelect(q.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-gold focus:ring-gold cursor-pointer"
+                  />
+                </td>
                 <td className="p-4">
                   <div className="flex items-center gap-2">
                     <span className="font-bold text-brand-dark dark:text-white">{q.clientDetails.clientName}</span>
@@ -221,12 +288,15 @@ const History: React.FC<HistoryProps> = ({
                 <td className="p-4">
                   <div className="flex items-center justify-end gap-1">
                       <div className="w-9 h-9 flex items-center justify-center">
-                          {q.status === 'Accepted' && !q.invoiceId && (
+                          {(q.status === 'Accepted' || q.status === 'Pending') && !q.invoiceId && (
                               <button onClick={() => onConvertToInvoice(q.id)} className="p-2 text-gray-500 hover:text-success hover:bg-green-100 rounded-full transition-colors" title="Convert to Invoice"><InvoiceIcon className="w-5 h-5"/></button>
                           )}
                       </div>
                       <div className="w-9 h-9 flex items-center justify-center">
                           <button onClick={() => onView(q.id)} className="p-2 text-gray-500 hover:text-gold-dark hover:bg-gold-light rounded-full transition-colors" title="View/Edit"><ViewIcon className="w-5 h-5"/></button>
+                      </div>
+                      <div className="w-9 h-9 flex items-center justify-center">
+                          <button onClick={() => shareQuotationToWhatsApp(q, settings)} className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-full transition-colors" title="Send WhatsApp"><WhatsAppIcon className="w-5 h-5"/></button>
                       </div>
                       <div className="w-9 h-9 flex items-center justify-center">
                           <button onClick={() => onDuplicate(q.id)} className="p-2 text-gray-500 hover:text-indigo-500 hover:bg-indigo-100 rounded-full transition-colors" title="Duplicate"><DuplicateIcon className="w-5 h-5"/></button>
@@ -248,29 +318,40 @@ const History: React.FC<HistoryProps> = ({
       {/* Cards for Mobile */}
       <div className="md:hidden space-y-6">
         {sortedAndFilteredQuotations.map(q => (
-          <div key={q.id} className={`bg-white p-6 rounded-2xl border border-border-color shadow-lg ${activeFilterIds?.includes(q.id) ? 'ring-2 ring-gold' : ''}`}>
-            <div className="flex justify-between items-start">
-              <div>
-                <div className="font-bold text-brand-dark flex items-center gap-2">
-                  {q.clientDetails.clientName}
-                  {q.isBulkGenerated && <span className="px-2 py-0.5 text-xs font-semibold text-indigo-800 bg-indigo-100 rounded-full">Bulk</span>}
-                </div>
-                <div className="text-xs text-gray-500">{q.clientDetails.projectName}</div>
-                <div className="text-xs text-gray-500 mt-1">{new Date(q.date).toLocaleDateString()}</div>
-              </div>
-              <StatusControl quotation={q} onUpdateStatus={onUpdateStatus} />
+          <div key={q.id} className={`bg-white p-6 rounded-2xl border border-border-color shadow-lg relative ${selectedIds.has(q.id) ? 'ring-2 ring-gold bg-gold-light/5' : ''} ${activeFilterIds?.includes(q.id) ? 'ring-2 ring-gold' : ''}`}>
+            <div className="absolute top-4 left-4">
+                 <input 
+                    type="checkbox" 
+                    checked={selectedIds.has(q.id)}
+                    onChange={() => toggleSelect(q.id)}
+                    className="h-5 w-5 rounded border-gray-300 text-gold focus:ring-gold cursor-pointer"
+                />
             </div>
-            <div className="mt-4 pt-4 border-t border-border-color flex justify-between items-center">
-              <div className="text-lg font-bold text-gold-dark">{formatCurrency(calculateTotals(q, settings).grandTotal)}</div>
-              <div className="flex items-center gap-1">
-                {q.status === 'Accepted' && !q.invoiceId && (
-                    <button onClick={() => onConvertToInvoice(q.id)} className="p-2 text-gray-500 hover:text-success hover:bg-green-100 rounded-full" title="Convert to Invoice"><InvoiceIcon className="w-5 h-5"/></button>
-                )}
-                <button onClick={() => onView(q.id)} className="p-2 text-gray-500 hover:text-gold-dark hover:bg-gold-light rounded-full"><ViewIcon className="w-5 h-5"/></button>
-                <button onClick={() => onDuplicate(q.id)} className="p-2 text-gray-500 hover:text-indigo-500 hover:bg-indigo-100 rounded-full"><DuplicateIcon className="w-5 h-5"/></button>
-                <button onClick={() => exportToPdf(q, settings)} className="p-2 text-gray-500 hover:text-orange-500 hover:bg-orange-100 rounded-full" title="Download PDF"><PdfIcon className="w-5 h-5"/></button>
-                <button onClick={() => onDelete(q.id)} className="p-2 text-gray-500 hover:text-danger hover:bg-red-100 rounded-full"><DeleteIcon className="w-5 h-5"/></button>
-              </div>
+            <div className="pl-8">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <div className="font-bold text-brand-dark flex items-center gap-2">
+                        {q.clientDetails.clientName}
+                        {q.isBulkGenerated && <span className="px-2 py-0.5 text-xs font-semibold text-indigo-800 bg-indigo-100 rounded-full">Bulk</span>}
+                        </div>
+                        <div className="text-xs text-gray-500">{q.clientDetails.projectName}</div>
+                        <div className="text-xs text-gray-500 mt-1">{new Date(q.date).toLocaleDateString()}</div>
+                    </div>
+                    <StatusControl quotation={q} onUpdateStatus={onUpdateStatus} />
+                </div>
+                <div className="mt-4 pt-4 border-t border-border-color flex justify-between items-center">
+                    <div className="text-lg font-bold text-gold-dark">{formatCurrency(calculateTotals(q, settings).grandTotal)}</div>
+                    <div className="flex items-center gap-1">
+                        {(q.status === 'Accepted' || q.status === 'Pending') && !q.invoiceId && (
+                            <button onClick={() => onConvertToInvoice(q.id)} className="p-2 text-gray-500 hover:text-success hover:bg-green-100 rounded-full" title="Convert to Invoice"><InvoiceIcon className="w-5 h-5"/></button>
+                        )}
+                        <button onClick={() => onView(q.id)} className="p-2 text-gray-500 hover:text-gold-dark hover:bg-gold-light rounded-full"><ViewIcon className="w-5 h-5"/></button>
+                        <button onClick={() => shareQuotationToWhatsApp(q, settings)} className="p-2 text-gray-500 hover:text-green-600 rounded-full" title="Send WhatsApp"><WhatsAppIcon className="w-5 h-5"/></button>
+                        <button onClick={() => onDuplicate(q.id)} className="p-2 text-gray-500 hover:text-indigo-500 hover:bg-indigo-100 rounded-full"><DuplicateIcon className="w-5 h-5"/></button>
+                        <button onClick={() => exportToPdf(q, settings)} className="p-2 text-gray-500 hover:text-orange-500 hover:bg-orange-100 rounded-full" title="Download PDF"><PdfIcon className="w-5 h-5"/></button>
+                        <button onClick={() => onDelete(q.id)} className="p-2 text-gray-500 hover:text-danger hover:bg-red-100 rounded-full"><DeleteIcon className="w-5 h-5"/></button>
+                    </div>
+                </div>
             </div>
           </div>
         ))}
@@ -281,6 +362,65 @@ const History: React.FC<HistoryProps> = ({
                 <FileTextIcon className="w-16 h-16 mx-auto text-gray-300" />
                 <h3 className="mt-2 text-lg font-semibold text-brand-dark">No Quotations Found</h3>
                 <p>Try adjusting your search or filters.</p>
+            </div>
+        )}
+
+        {/* Bulk Action Toolbar */}
+        {selectedIds.size > 0 && (
+            <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-fade-in">
+                <div className="bg-brand-dark text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-6 border border-gold/30 backdrop-blur-xl ring-4 ring-black/10">
+                    <div className="flex items-center gap-3 pr-6 border-r border-white/10">
+                         <div className="bg-gold text-brand-dark w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-inner">{selectedIds.size}</div>
+                         <span className="text-sm font-bold text-gray-300">Selected</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                         {/* Bulk Status Update */}
+                         <div className="relative" ref={bulkStatusRef}>
+                             <button 
+                                onClick={() => setIsBulkStatusOpen(!isBulkStatusOpen)}
+                                className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl transition-all text-sm font-bold border border-white/10"
+                             >
+                                <CheckCircleIcon className="w-4 h-4 text-emerald-400" />
+                                Set Status
+                                <ChevronDownIcon className={`w-4 h-4 opacity-50 transition-transform ${isBulkStatusOpen ? 'rotate-180' : ''}`} />
+                             </button>
+
+                             {isBulkStatusOpen && (
+                                <div className="absolute bottom-full mb-3 left-0 w-48 bg-brand-dark rounded-xl shadow-2xl border border-white/10 overflow-hidden ring-1 ring-black">
+                                     <button onClick={() => handleBulkStatusChange('Pending')} className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-white/10 transition-colors border-b border-white/5">Pending</button>
+                                     <button onClick={() => handleBulkStatusChange('Accepted')} className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-white/10 transition-colors border-b border-white/5">Accepted</button>
+                                     <button onClick={() => handleBulkStatusChange('Rejected')} className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-white/10 transition-colors border-b border-white/5">Rejected</button>
+                                     <button onClick={() => handleBulkStatusChange('Invoiced')} className="w-full text-left px-4 py-3 text-sm font-medium hover:bg-white/10 transition-colors">Invoiced</button>
+                                </div>
+                             )}
+                         </div>
+
+                         <button 
+                            onClick={handleBulkZip}
+                            className="flex items-center gap-2 px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/40 rounded-xl transition-all text-sm font-bold border border-indigo-500/30 text-indigo-200"
+                         >
+                            <ZipIcon className="w-4 h-4" />
+                            Zip Export
+                         </button>
+
+                         <button 
+                            onClick={handleBulkDelete}
+                            className="flex items-center gap-2 px-4 py-2 bg-red-500/20 hover:bg-red-500/40 rounded-xl transition-all text-sm font-bold border border-red-500/30 text-red-200"
+                         >
+                            <DeleteIcon className="w-4 h-4" />
+                            Delete
+                         </button>
+                    </div>
+
+                    <button 
+                        onClick={() => setSelectedIds(new Set())}
+                        className="ml-2 p-2 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors"
+                        title="Clear Selection"
+                    >
+                        <RemoveIcon className="w-5 h-5" />
+                    </button>
+                </div>
             </div>
         )}
     </div>

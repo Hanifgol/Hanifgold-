@@ -9,18 +9,24 @@ interface MetricCardProps {
 
 const MetricCard: React.FC<MetricCardProps> = ({ title, value, icon, gradient }) => {
   return (
-    <div className="bg-white dark:bg-surface-dark p-6 rounded-2xl shadow-soft hover:shadow-lg transition-all duration-300 border border-border-color dark:border-border-dark flex flex-col justify-between h-full relative overflow-hidden group">
-      <div className="flex justify-between items-start">
-          <div>
-              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">{title}</p>
-              <h3 className="text-2xl font-bold text-brand-dark dark:text-white tracking-tight group-hover:text-gold-dark transition-colors">{value}</h3>
+    <div className={`relative bg-white/60 dark:bg-white/5 backdrop-blur-md p-8 rounded-[2rem] shadow-lg border border-white/40 dark:border-white/5 overflow-hidden group transition-all duration-500 hover:transform hover:-translate-y-2 hover:shadow-2xl`}>
+      {/* Background Gradient Overlay */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-40 group-hover:opacity-60 transition-opacity duration-500`}></div>
+      
+      <div className="relative z-10 flex flex-col h-full justify-between">
+          <div className="flex justify-between items-start mb-4">
+               <div className="p-4 rounded-2xl bg-white dark:bg-slate-800 shadow-md text-gray-600 dark:text-gray-300 group-hover:scale-110 transition-transform duration-500 border border-gray-100 dark:border-gray-700">
+                  {icon}
+              </div>
           </div>
-          <div className={`p-3 rounded-xl ${gradient} dark:bg-opacity-10 transition-transform group-hover:scale-110`}>
-              {icon}
+          <div>
+              <h3 className="text-4xl font-black text-brand-dark dark:text-white tracking-tighter mb-1">{value}</h3>
+              <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest opacity-80">{title}</p>
           </div>
       </div>
-      {/* Decorative circle */}
-      <div className={`absolute -bottom-4 -right-4 w-24 h-24 rounded-full ${gradient} opacity-10 dark:opacity-5 pointer-events-none`}></div>
+      
+      {/* Decorative blurred circle */}
+      <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-3xl pointer-events-none group-hover:bg-white/30 transition-colors duration-500"></div>
     </div>
   );
 };
