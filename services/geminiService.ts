@@ -205,7 +205,7 @@ export const generateQuotationFromAI = async (inputText: string, settings: Setti
             model: 'gemini-3-pro-preview',
             contents: prompt,
             generationConfig: {
-                responseMimeType: "application/json",
+                responseMimeType: "application/json"
             }
 
         if (!response.text) {
