@@ -41,12 +41,15 @@ export const calculateTotals = (data: QuotationData | InvoiceData | null, settin
     const safeTiles = Array.isArray(tiles) ? tiles : [];
     const safeMaterials = Array.isArray(materials) ? materials : [];
 
-    const totalSqm = safeTiles.reduce((acc, tile) => acc + (Number(tile.sqm) || 0), 0);
-    const totalTileCost = safeTiles.reduce((acc, tile) => acc + ((Number(tile.cartons) || 0) * (Number(tile.unitPrice) || 0)), 0);
+    // Added explicit type to acc to fix potential arithmetic operation errors
+    const totalSqm = safeTiles.reduce((acc: number, tile) => acc + (Number(tile.sqm) || 0), 0);
+    // Added explicit type to acc to fix potential arithmetic operation errors
+    const totalTileCost = safeTiles.reduce((acc: number, tile) => acc + ((Number(tile.cartons) || 0) * (Number(tile.unitPrice) || 0)), 0);
     
     // Calculate material cost only if the section is shown
+    // Added explicit type to acc to fix potential arithmetic operation errors
     const totalMaterialCost = showMaterials 
-        ? safeMaterials.reduce((acc, mat) => acc + ((Number(mat.quantity) || 0) * (Number(mat.unitPrice) || 0)), 0)
+        ? safeMaterials.reduce((acc: number, mat) => acc + ((Number(mat.quantity) || 0) * (Number(mat.unitPrice) || 0)), 0)
         : 0;
     
     // If workmanship is hidden, cost is 0
@@ -61,7 +64,8 @@ export const calculateTotals = (data: QuotationData | InvoiceData | null, settin
     let totalAdjustments = 0;
     // Handle quotation adjustments only if shown
     if (showAdjustments && 'adjustments' in data && Array.isArray(data.adjustments)) {
-        totalAdjustments = data.adjustments.reduce((acc, adj) => acc + (Number(adj.amount) || 0), 0);
+        // Added explicit type to acc to fix potential arithmetic operation errors
+        totalAdjustments = data.adjustments.reduce((acc: number, adj) => acc + (Number(adj.amount) || 0), 0);
     }
 
     const postAdjustmentSubtotal = subtotal + totalAdjustments;

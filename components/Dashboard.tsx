@@ -151,8 +151,9 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
         const totalExpenses: number = filteredExpenses.reduce((sum: number, e) => sum + (Number(e.amount) || 0), 0);
         
         // 4. Net Profit
-        // FIX: Ensure left and right hand sides are numeric for the arithmetic operation using Number() casting.
-        const netProfit: number = Number(totalRevenue) - Number(totalExpenses);
+        // FIX: Ensure left and right hand sides are numeric for the arithmetic operation.
+        // Removed redundant Number() calls on variables already typed as number to satisfy TS rules
+        const netProfit: number = (totalRevenue || 0) - (totalExpenses || 0);
         
         // 5. Expense Breakdown (Pie Chart)
         // FIX: Provide explicit Record type and casting for initial value to prevent indexing errors.
