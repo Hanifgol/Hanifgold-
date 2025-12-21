@@ -206,8 +206,8 @@ export const generateQuotationFromAI = async (inputText: string, settings: Setti
             contents: prompt,
             generationConfig: {
                 responseMimeType: "application/json"
-            };
-        
+                }        
+                            });
 
         if (!response.text) {
             throw new Error("No text content in response.");
