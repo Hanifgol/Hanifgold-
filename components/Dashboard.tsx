@@ -133,27 +133,30 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
         // Only Paid invoices count towards revenue for "Paid This Month" and "Net Profit"
         const paidInvoices = filteredInvoices.filter(i => i.status === 'Paid');
         
-        // FIX: Explicitly type accumulator in reduce and ensure we handle number operations safely
-        const totalRevenue: number = paidInvoices.reduce((sum: number, i) => {
+        // FIX: Explicitly use type parameter for reduce and handle number operations safely
+        const totalRevenue = paidInvoices.reduce<number>((sum, i) => {
             const totals = calculateTotals(i, settings);
             return sum + (Number(totals.grandTotal) || 0);
         }, 0);
         
-        const paidThisMonth: number = paidInvoices
-            .filter(i => (Number(i.paymentDate) || Number(i.invoiceDate)) >= startOfMonth)
-            .reduce((sum: number, i) => {
+        // FIX: Robust check for payment dates and handled potential arithmetic/comparison error on line 167
+        const paidThisMonth = paidInvoices
+            .filter(i => {
+                const pDate = i.paymentDate ? Number(i.paymentDate) : Number(i.invoiceDate);
+                return pDate >= startOfMonth;
+            })
+            .reduce<number>((sum, i) => {
                 const totals = calculateTotals(i, settings);
                 return sum + (Number(totals.grandTotal) || 0);
             }, 0);
         
         // 3. Total Expenses
-        // FIX: Explicitly type accumulator in reduce and ensure amount is treated as a number
-        const totalExpenses: number = filteredExpenses.reduce((sum: number, e) => sum + (Number(e.amount) || 0), 0);
+        // FIX: Explicitly use type parameter for reduce and ensure amount is treated as a number
+        const totalExpenses = filteredExpenses.reduce<number>((sum, e) => sum + (Number(e.amount) || 0), 0);
         
         // 4. Net Profit
-        // FIX: Ensure left and right hand sides are numeric for the arithmetic operation.
-        // We use explicit casting to number to resolve type errors in arithmetic operations.
-        const netProfit: number = (totalRevenue as number) - (totalExpenses as number);
+        // FIX: Simplified subtraction of already numeric variables to resolve arithmetic type error
+        const netProfit = totalRevenue - totalExpenses;
         
         // 5. Expense Breakdown (Pie Chart)
         // FIX: Provide explicit Record type and casting for initial value to prevent indexing errors.
@@ -217,8 +220,8 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
             acceptanceRate,
             expenseChartData, 
             monthlyPerformance,
-            // FIX: Explicitly type accumulator in reduce and ensure numeric grandTotal
-            totalQuoted: filteredQuotations.reduce((sum: number, q) => {
+            // FIX: Explicitly use type parameter for reduce and ensure numeric grandTotal
+            totalQuoted: filteredQuotations.reduce<number>((sum, q) => {
                 const totals = calculateTotals(q, settings);
                 return sum + (Number(totals.grandTotal) || 0);
             }, 0),

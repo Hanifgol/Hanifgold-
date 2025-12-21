@@ -7,11 +7,12 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, (process as any).cwd(), '');
   
   // Retrieve Gemini API key from environment
-  const apiKey = env.API_KEY || (process as any).env.API_KEY || '';
+  // Updated to check for VITE_GOOGLE_API_KEY as requested by the user
+  const apiKey = env.API_KEY || env.VITE_GOOGLE_API_KEY || (process as any).env.API_KEY || (process as any).env.VITE_GOOGLE_API_KEY || '';
 
   // Retrieve Supabase credentials from environment or use requested fallbacks
-  const supabaseUrl = env.VITE_SUPABASE_URL || (process as any).env.VITE_SUPABASE_URL || 'https://dnfcppypfmbabrnkscmc.supabase.co';
-  const supabaseKey = env.VITE_SUPABASE_ANON_KEY || (process as any).env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRuZmNwcHlwZm1iYWJybmtzY21jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYzMjk4MTIsImV4cCI6MjA4MTkwNTgxMn0.2Bwo9W7giPbDhXnW789KizcTvwdV_fsfhH1C6_k91C8';
+  const supabaseUrl = env.VITE_SUPABASE_URL || (process as any).env.VITE_SUPABASE_URL || 'https://rucwfhprvsvbytijwzya.supabase.co';
+  const supabaseKey = env.VITE_SUPABASE_ANON_KEY || (process as any).env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_ltaNA7nnVozoSCOcZIjg';
 
   return {
     plugins: [react()],
