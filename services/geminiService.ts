@@ -204,7 +204,7 @@ export const generateQuotationFromAI = async (inputText: string, settings: Setti
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: prompt,
-            config: {
+            generationConfig: {
                 responseMimeType: "application/json",
                 responseSchema: responseSchema as any,
             }
@@ -247,11 +247,11 @@ export const generateSpeechFromText = async (text: string): Promise<string> => {
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
             contents: [{ parts: [{ text: `Say clearly: ${text}` }] }],
-            config: {
+            generationConfig: {
                 responseModalities: [Modality.AUDIO],
-                speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName: 'Kore' },
+                speechgenerationConfig: {
+                    voicegenerationConfig: {
+                        prebuiltVoicegenerationConfig: { voiceName: 'Kore' },
                     },
                 },
             },
