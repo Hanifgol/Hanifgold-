@@ -9,8 +9,7 @@ function getAiClient(): GoogleGenAI {
     if (aiInstance) {
         return aiInstance;
     }
-    const API_KEY = process.env.API_KEY;
-    
+  const API_KEY = process.env.VITE_GOOGLE_API_KEY;    
     // Diagnostic log for API Key presence
     if (API_KEY) {
         const maskedKey = API_KEY.length > 8 
