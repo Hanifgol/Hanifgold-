@@ -2,35 +2,48 @@
 import { createClient } from '@supabase/supabase-js';
 
 /**
- * Diagnostic helper to check environment variables.
- * Sensitive parts are masked for security.
+ * Robust retrieval of environment variables.
+ * Using direct literal tokens to ensure Vite's static replacement works reliably.
  */
-const getEnvVar = (name: string): string => {
-    // Try Vite's native import.meta.env first, then fallback to process.env (injected by vite.config.ts)
-    const value = (import.meta as any).env?.[name] || (process as any).env?.[name] || '';
-    
-    if (value) {
-        const masked = value.length > 8 
-            ? `${value.substring(0, 4)}...${value.substring(value.length - 4)}` 
-            : '***';
-        console.log(`[Supabase Init] Found ${name}: ${masked} (Length: ${value.length})`);
+
+// Helper to safely extract values from various possible injection points
+const getEnvValue = (key: 'VITE_SUPABASE_URL' | 'VITE_SUPABASE_ANON_KEY'): string => {
+  // 1. Try Vite static replacement (must be literal string for the analyzer)
+  try {
+    if (key === 'VITE_SUPABASE_URL') {
+      // @ts-ignore - Injected by Vite
+      const val = import.meta.env.VITE_SUPABASE_URL;
+      if (val && typeof val === 'string' && !val.includes('import.meta')) return val;
     } else {
-        console.warn(`[Supabase Init] Missing ${name}`);
+      // @ts-ignore - Injected by Vite
+      const val = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      if (val && typeof val === 'string' && !val.includes('import.meta')) return val;
     }
-    
-    return value;
+  } catch (e) {}
+  
+  // 2. Try process.env (for environments that don't use static replacement or browser polyfills)
+  try {
+    const procVal = (process as any).env[key] || (window as any).process?.env?.[key];
+    if (procVal && typeof procVal === 'string') return procVal;
+  } catch (e) {}
+
+  // 3. Final fallback: Use project-specific defaults
+  if (key === 'VITE_SUPABASE_URL') return 'https://rucwfhprvsvbytijwzya.supabase.co';
+  if (key === 'VITE_SUPABASE_ANON_KEY') return 'sb_publishable_ltaNA7nnVozoSCOcZIjg';
+  
+  return '';
 };
 
-const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
+const supabaseUrl = getEnvValue('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnvValue('VITE_SUPABASE_ANON_KEY');
 
-// Specific check for the key type. 
-// Standard Supabase Anon keys are JWTs starting with 'eyJ'.
-if (supabaseAnonKey && !supabaseAnonKey.startsWith('eyJ')) {
-    console.error(
-        '[Supabase Init] CRITICAL: Your VITE_SUPABASE_ANON_KEY does not look like a standard Supabase Anon key. ' +
-        'It should be a long string starting with "eyJ". You might be using a "publishable" or "secret" key instead.'
-    );
+// Diagnostic logging for development
+if (supabaseUrl && supabaseAnonKey) {
+    const maskedKey = supabaseAnonKey.length > 8 
+        ? `${supabaseAnonKey.substring(0, 4)}...${supabaseAnonKey.substring(supabaseAnonKey.length - 4)}` 
+        : '***';
+    console.log(`[Supabase Init] Connected to: ${supabaseUrl}`);
+    console.log(`[Supabase Init] Key used: ${maskedKey}`);
 }
 
 export const isSupabaseConfigured = !!(
@@ -40,9 +53,8 @@ export const isSupabaseConfigured = !!(
   supabaseUrl.startsWith('https://')
 );
 
-// Initialize the client. 
-// If credentials are valid, it creates a real client.
-// Otherwise, it uses a placeholder to prevent the app from crashing on boot.
+// Initialize the client
+// We prioritize real configuration but provide a dummy to prevent crashes if all checks fail
 export const supabase = isSupabaseConfigured 
   ? createClient(supabaseUrl, supabaseAnonKey)
   : createClient('https://placeholder-project.supabase.co', 'placeholder-key');
@@ -50,5 +62,5 @@ export const supabase = isSupabaseConfigured
 if (isSupabaseConfigured) {
     console.log('[Supabase Init] Client initialized successfully.');
 } else {
-    console.error('[Supabase Init] Client initialization failed due to missing or invalid config.');
+    console.error('[Supabase Init] Client initialization failed due to missing config. Please check VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.');
 }

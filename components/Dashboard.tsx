@@ -134,34 +134,35 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
         const paidInvoices = filteredInvoices.filter(i => i.status === 'Paid');
         
         // FIX: Explicitly use type parameter for reduce and handle number operations safely
-        const totalRevenue = paidInvoices.reduce<number>((sum, i) => {
+        const totalRevenue = paidInvoices.reduce<number>((sum: number, i: InvoiceData) => {
             const totals = calculateTotals(i, settings);
             return sum + (Number(totals.grandTotal) || 0);
         }, 0);
         
-        // FIX: Robust check for payment dates and handled potential arithmetic/comparison error on line 167
+        // FIX: Robust check for payment dates and handled potential arithmetic/comparison error
         const paidThisMonth = paidInvoices
             .filter(i => {
                 const pDate = i.paymentDate ? Number(i.paymentDate) : Number(i.invoiceDate);
                 return pDate >= startOfMonth;
             })
-            .reduce<number>((sum, i) => {
+            .reduce<number>((sum: number, i: InvoiceData) => {
                 const totals = calculateTotals(i, settings);
                 return sum + (Number(totals.grandTotal) || 0);
             }, 0);
         
         // 3. Total Expenses
-        // FIX: Explicitly use type parameter for reduce and ensure amount is treated as a number
-        const totalExpenses = filteredExpenses.reduce<number>((sum, e) => sum + (Number(e.amount) || 0), 0);
+        // FIX: Explicitly type reduction parameters to ensure numeric arithmetic
+        const totalExpenses = filteredExpenses.reduce<number>((sum: number, e: Expense) => sum + (Number(e.amount) || 0), 0);
         
         // 4. Net Profit
-        // FIX: Simplified subtraction of already numeric variables to resolve arithmetic type error
-        const netProfit = totalRevenue - totalExpenses;
+        // FIX: Explicitly cast to number to satisfy arithmetic operation requirements
+        const netProfit = (totalRevenue as number) - (totalExpenses as number);
         
         // 5. Expense Breakdown (Pie Chart)
         // FIX: Provide explicit Record type and casting for initial value to prevent indexing errors.
         const expenseBreakdownMap = filteredExpenses.reduce<Record<string, number>>((acc, e) => {
             const cat = e.category || 'Other';
+            // FIX: Ensure numeric addition by explicitly casting operands
             acc[cat] = (Number(acc[cat]) || 0) + (Number(e.amount) || 0);
             return acc;
         }, {} as Record<string, number>);
@@ -221,7 +222,7 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
             expenseChartData, 
             monthlyPerformance,
             // FIX: Explicitly use type parameter for reduce and ensure numeric grandTotal
-            totalQuoted: filteredQuotations.reduce<number>((sum, q) => {
+            totalQuoted: filteredQuotations.reduce<number>((sum: number, q: QuotationData) => {
                 const totals = calculateTotals(q, settings);
                 return sum + (Number(totals.grandTotal) || 0);
             }, 0),
