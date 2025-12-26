@@ -9,8 +9,8 @@ import { calculateTotals } from '../services/calculationService';
 // --- Reusable Chart Components ---
 
 const SimplePieChart: React.FC<{ data: { label: string; value: number; color: string }[] }> = ({ data }) => {
-    // FIX: Explicitly type the accumulator in reduce to ensure numeric arithmetic
-    const total = data.reduce((acc: number, item) => acc + item.value, 0);
+    // Explicitly type the accumulator as number for reliable arithmetic
+    const total = data.reduce((acc: number, item) => acc + (Number(item.value) || 0), 0);
     if (total === 0) return <div className="text-center text-gray-400 h-full flex items-center justify-center text-sm italic">No expense data available</div>;
     
     let cumulative = 0;
@@ -52,7 +52,7 @@ const SimplePieChart: React.FC<{ data: { label: string; value: number; color: st
 };
 
 const GroupedBarChart: React.FC<{ data: { label: string; values: { value: number; color: string; label: string }[] }[] }> = ({ data }) => {
-    const maxValue = Math.max(...data.flatMap(d => d.values.map(v => v.value)), 1000);
+    const maxValue = Math.max(...data.flatMap(d => d.values.map(v => Number(v.value) || 0)), 1000);
     if (data.length === 0) return <div className="text-center text-gray-400 h-full flex items-center justify-center text-sm italic">No historical data available</div>;
 
     return (
@@ -62,7 +62,7 @@ const GroupedBarChart: React.FC<{ data: { label: string; values: { value: number
                     <div className="w-full flex items-end justify-center gap-1 sm:gap-3 h-full px-1 sm:px-3 bg-white/30 dark:bg-white/5 rounded-2xl pb-0 pt-4 border border-white/20 dark:border-white/5 backdrop-blur-sm transition-all hover:bg-white/50 dark:hover:bg-white/10">
                         {item.values.map(val => (
                             <div key={val.label} className="w-full rounded-t-lg relative transition-all duration-500 hover:opacity-90 shadow-md group/bar"
-                                 style={{ height: `${Math.max((val.value / maxValue) * 100, 2)}%`, backgroundColor: val.color }}>
+                                 style={{ height: `${Math.max((Number(val.value) / maxValue) * 100, 2)}%`, backgroundColor: val.color }}>
                                  {/* Tooltip */}
                                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-brand-dark text-white text-[10px] px-3 py-1.5 rounded-lg shadow-xl opacity-0 group-hover/bar:opacity-100 transition-all whitespace-nowrap z-20 pointer-events-none border border-white/10 backdrop-blur-md transform translate-y-2 group-hover/bar:translate-y-0">
                                      <span className="font-bold">{val.label}</span>: {formatCurrency(val.value)}
@@ -107,13 +107,11 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
           rangeStart.setDate(1);
           rangeStart.setHours(0, 0, 0, 0);
         } else {
-          // FIX: Ensure numeric subtraction by explicitly parsing and wrapping in Number()
           const daysToSubtract = parseInt(dateRange, 10);
           rangeStart.setDate(now.getDate() - (isNaN(daysToSubtract) ? 0 : daysToSubtract));
         }
 
         const startTimestamp = rangeStart.getTime();
-        // FIX: Compare timestamps for reliable date filtering in TS
         const fq = quotations.filter(q => new Date(q.date).getTime() >= startTimestamp);
         const fi = invoices.filter(i => new Date(i.invoiceDate).getTime() >= startTimestamp);
         const fe = expenses.filter(e => new Date(e.date).getTime() >= startTimestamp);
@@ -127,19 +125,19 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
         // 1. Quotations Count
         const totalQuotations = filteredQuotations.length;
         const acceptedCount = filteredQuotations.filter(q => q.status === 'Accepted' || q.status === 'Invoiced').length;
-        const acceptanceRate = totalQuotations > 0 ? (acceptedCount / totalQuotations) * 100 : 0;
+        const acceptanceRate = totalQuotations > 0 ? (Number(acceptedCount) / Number(totalQuotations)) * 100 : 0;
         
         // 2. Revenue & Paid This Month
-        // Only Paid invoices count towards revenue for "Paid This Month" and "Net Profit"
         const paidInvoices = filteredInvoices.filter(i => i.status === 'Paid');
         
-        // FIX: Explicitly use type parameter for reduce and handle number operations safely
+        // Explicitly cast sum and grandTotal to Number to ensure reliable arithmetic
         const totalRevenue = paidInvoices.reduce<number>((sum: number, i: InvoiceData) => {
             const totals = calculateTotals(i, settings);
-            return sum + (Number(totals.grandTotal) || 0);
+            // Fix: Ensuring both sides of addition are numbers
+            return (Number(sum) || 0) + (Number(totals.grandTotal) || 0);
         }, 0);
         
-        // FIX: Robust check for payment dates and handled potential arithmetic/comparison error
+        // Robust check for payment dates and handled potential arithmetic/comparison error
         const paidThisMonth = paidInvoices
             .filter(i => {
                 const pDate = i.paymentDate ? Number(i.paymentDate) : Number(i.invoiceDate);
@@ -147,23 +145,23 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
             })
             .reduce<number>((sum: number, i: InvoiceData) => {
                 const totals = calculateTotals(i, settings);
-                return sum + (Number(totals.grandTotal) || 0);
+                // Fix: Ensuring both sides of addition are numbers
+                return (Number(sum) || 0) + (Number(totals.grandTotal) || 0);
             }, 0);
         
         // 3. Total Expenses
-        // FIX: Explicitly type reduction parameters to ensure numeric arithmetic
-        const totalExpenses = filteredExpenses.reduce<number>((sum: number, e: Expense) => sum + (Number(e.amount) || 0), 0);
+        // Explicitly type reduction parameters and operands to ensure numeric arithmetic
+        const totalExpenses = filteredExpenses.reduce<number>((sum: number, e: Expense) => (Number(sum) || 0) + (Number(e.amount) || 0), 0);
         
         // 4. Net Profit
-        // FIX: Explicitly cast to number to satisfy arithmetic operation requirements
-        const netProfit = (totalRevenue as number) - (totalExpenses as number);
+        // Fix for reported error on line 168: explicitly treat operands as numbers to satisfy arithmetic constraints
+        const netProfit = (Number(totalRevenue) || 0) - (Number(totalExpenses) || 0);
         
         // 5. Expense Breakdown (Pie Chart)
-        // FIX: Provide explicit Record type and casting for initial value to prevent indexing errors.
         const expenseBreakdownMap = filteredExpenses.reduce<Record<string, number>>((acc, e) => {
             const cat = e.category || 'Other';
-            // FIX: Ensure numeric addition by explicitly casting operands
-            acc[cat] = (Number(acc[cat]) || 0) + (Number(e.amount) || 0);
+            // Fix: Use as number cast to ensure arithmetic operation is on numeric types
+            acc[cat] = ((acc[cat] as number) || 0) + (Number(e.amount) || 0);
             return acc;
         }, {} as Record<string, number>);
 
@@ -189,9 +187,10 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
         paidInvoices.forEach(i => {
             const date = new Date(Number(i.paymentDate) || Number(i.invoiceDate));
             const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            if (monthlyData[key]) {
+            const monthEntry = monthlyData[key];
+            if (monthEntry) {
                 const totals = calculateTotals(i, settings);
-                monthlyData[key].revenue += (Number(totals.grandTotal) || 0);
+                monthEntry.revenue += (Number(totals.grandTotal) || 0);
             }
         });
 
@@ -199,8 +198,9 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
         filteredExpenses.forEach(e => {
             const date = new Date(Number(e.date));
             const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            if (monthlyData[key]) {
-                monthlyData[key].expenses += (Number(e.amount) || 0);
+            const monthEntry = monthlyData[key];
+            if (monthEntry) {
+                monthEntry.expenses += (Number(e.amount) || 0);
             }
         });
         
@@ -221,10 +221,10 @@ const Dashboard: React.FC<DashboardProps> = ({ quotations, invoices, expenses, s
             acceptanceRate,
             expenseChartData, 
             monthlyPerformance,
-            // FIX: Explicitly use type parameter for reduce and ensure numeric grandTotal
             totalQuoted: filteredQuotations.reduce<number>((sum: number, q: QuotationData) => {
                 const totals = calculateTotals(q, settings);
-                return sum + (Number(totals.grandTotal) || 0);
+                // Fix: Ensuring both sides of addition are numbers
+                return (Number(sum) || 0) + (Number(totals.grandTotal) || 0);
             }, 0),
             invoicesGenerated: filteredInvoices.length
         };

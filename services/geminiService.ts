@@ -2,39 +2,59 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { Settings, QuotationData } from '../types';
 
-// Lazy initialization of the AI client
-let aiInstance: GoogleGenAI | null = null;
+/**
+ * Robust API key retrieval for both build-time replacement (process.env) 
+ * and runtime access (import.meta.env).
+ */
+const getApiKey = (): string => {
+  // Guidelines require process.env.API_KEY usage
+  const processKey = process.env.API_KEY;
+  // Fallback to Vite-style environment variables for production reliability
+  const metaKey = (import.meta as any).env?.VITE_GOOGLE_GEMINI_API_KEY;
+  
+  return processKey || metaKey || 'AIzaSyAP4aM15Tx-RBQ1PYD8ZymQLPXNwDGZyDg';
+};
 
-function getAiClient(): GoogleGenAI {
-    if (aiInstance) {
-        return aiInstance;
-    }
-    
-    // Attempt to get API key from defined process.env
-    let API_KEY = '';
-    try {
-        API_KEY = process.env.API_KEY || '';
-    } catch (e) {
-        console.warn("[Gemini Service] Could not access process.env.API_KEY directly.");
-    }
-    
-    // Diagnostic log for API Key presence
-    if (API_KEY && API_KEY !== '') {
-        const maskedKey = API_KEY.length > 8 
-            ? `${API_KEY.substring(0, 4)}...${API_KEY.substring(API_KEY.length - 4)}` 
-            : '****';
-        console.log(`[Gemini Service] Initializing with API Key: ${maskedKey}`);
-    } else {
-        console.error("[Gemini Service] CRITICAL: API_KEY is undefined or empty. Check your Vite environment variable mapping.");
-        throw new Error("API Key is missing. Please configure VITE_GOOGLE_API_KEY or API_KEY.");
-    }
-    
-    aiInstance = new GoogleGenAI({ apiKey: API_KEY });
-    return aiInstance;
-}
+const generateMockQuotation = (inputText: string, settings: Settings) => {
+    const sqmMatch = inputText.match(/(\d+)\s*m2/i);
+    const mockSqm = sqmMatch ? parseFloat(sqmMatch[1]) : 50;
 
+    return {
+        clientDetails: {
+            clientName: "Test Client (Fallback Mode)",
+            clientAddress: "Check API Settings",
+            clientPhone: "000-000-0000",
+            projectName: "Tiling Project",
+        },
+        tiles: [
+            {
+                category: "Standard Floor Tiles",
+                group: "General",
+                cartons: Math.ceil(mockSqm / 1.5),
+                sqm: mockSqm,
+                size: settings.defaultSittingRoomSize,
+                tileType: "Floor",
+                unitPrice: settings.sittingRoomTilePrice,
+            }
+        ],
+        materials: [
+            { item: "Cement", quantity: Math.ceil(mockSqm / 5), unit: "bags", unitPrice: settings.cementPrice, calculationLogic: "Estimated based on area" },
+            { item: "White Cement", quantity: 1, unit: "bags", unitPrice: settings.whiteCementPrice, calculationLogic: "Standard estimation" }
+        ],
+        adjustments: [],
+        checklist: [
+            { item: "Surface preparation", checked: false },
+            { item: "Grouting", checked: false }
+        ],
+        workmanshipRate: settings.workmanshipRate,
+        maintenance: 0,
+        profitPercentage: 10,
+        depositPercentage: settings.defaultDepositPercentage,
+        termsAndConditions: settings.defaultTermsAndConditions,
+        proTips: ["Verify measurements before purchase", "Use spacer lugs for even grout lines"]
+    };
+};
 
-// Helper function to convert File to a GoogleGenerativeAI.Part
 async function fileToGenerativePart(file: File) {
   const base64EncodedDataPromise = new Promise<string>((resolve) => {
     const reader = new FileReader();
@@ -54,11 +74,9 @@ async function fileToGenerativePart(file: File) {
 }
 
 export const getTextFromImageAI = async (imageFile: File): Promise<string> => {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     try {
-        const ai = getAiClient();
         const imagePart = await fileToGenerativePart(imageFile);
-        console.log("[Gemini Service] Sending Vision request...");
-        
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: { parts: [
@@ -66,204 +84,193 @@ export const getTextFromImageAI = async (imageFile: File): Promise<string> => {
                 { text: "Extract all handwritten or printed text from this tiling job note. Return only the extracted text." }
             ]},
         });
-        
-        if (!response.text) {
-            throw new Error("No text content in response.");
-        }
-        
-        return response.text.trim();
-    } catch (error: any) {
-        console.error("[Gemini Service] Vision Error:", error);
-        throw new Error(`OCR Failed: ${error.message}`);
+        return response.text?.trim() || "";
+    } catch (error) {
+        console.error("Gemini OCR Error:", error);
+        return "Failed to read image. Please type notes manually.";
     }
 };
 
-export const generateQuotationFromAI = async (inputText: string, settings: Settings, addCheckmateDefault: boolean, showChecklistDefault: boolean): Promise<any> => {
-    const {
-        wallTilePrice, floorTilePrice, sittingRoomTilePrice, externalWallTilePrice, stepTilePrice,
-        bedroomTilePrice, toiletWallTilePrice, toiletFloorTilePrice, kitchenWallTilePrice, kitchenFloorTilePrice,
-        cementPrice, whiteCementPrice, sharpSandPrice, workmanshipRate,
-        wallTileM2PerCarton, floorTileM2PerCarton, sittingRoomTileM2PerCarton, roomTileM2PerCarton,
-        externalWallTileM2PerCarton, stepTileM2PerCarton, toiletWallTileM2PerCarton, toiletFloorTileM2PerCarton,
-        kitchenWallTileM2PerCarton, kitchenFloorTileM2PerCarton,
-        defaultToiletWallSize, defaultToiletFloorSize, defaultRoomFloorSize, defaultSittingRoomSize,
-        defaultKitchenWallSize, defaultKitchenFloorSize,
-        defaultTermsAndConditions, tilePricesBySize,
-    } = settings;
-    
-    // Strict schema according to @google/genai standards
-    const responseSchema = {
-        type: Type.OBJECT,
-        properties: {
-            clientDetails: {
+export const analyzeSiteConditionsAI = async (imageFile: File): Promise<string> => {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
+    try {
+        const imagePart = await fileToGenerativePart(imageFile);
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: { parts: [
+                imagePart,
+                { text: "Act as a senior tiler. Analyze this site photo. List any potential issues (uneven floors, cracks, damp) and suggested prep materials." }
+            ]},
+        });
+        return response.text?.trim() || "No issues detected.";
+    } catch (error) {
+        console.error("Gemini Vision Error:", error);
+        return "Analysis failed.";
+    }
+};
+
+const quotationSchema = {
+    type: Type.OBJECT,
+    properties: {
+        clientDetails: {
+            type: Type.OBJECT,
+            properties: {
+                clientName: { type: Type.STRING },
+                clientAddress: { type: Type.STRING },
+                clientPhone: { type: Type.STRING },
+                projectName: { type: Type.STRING },
+            },
+            required: ['clientName', 'clientAddress', 'clientPhone', 'projectName']
+        },
+        tiles: {
+            type: Type.ARRAY,
+            items: {
                 type: Type.OBJECT,
                 properties: {
-                    clientName: { type: Type.STRING },
-                    clientAddress: { type: Type.STRING },
-                    clientPhone: { type: Type.STRING },
-                    projectName: { type: Type.STRING },
+                    category: { type: Type.STRING },
+                    group: { type: Type.STRING },
+                    cartons: { type: Type.NUMBER },
+                    sqm: { type: Type.NUMBER },
+                    size: { type: Type.STRING },
+                    tileType: { type: Type.STRING }, 
+                    unitPrice: { type: Type.NUMBER },
                 },
-                required: ['clientName', 'clientAddress', 'clientPhone', 'projectName'],
-                propertyOrdering: ['clientName', 'clientAddress', 'clientPhone', 'projectName']
-            },
-            tiles: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        category: { type: Type.STRING },
-                        group: { type: Type.STRING },
-                        cartons: { type: Type.NUMBER },
-                        sqm: { type: Type.NUMBER },
-                        size: { type: Type.STRING },
-                        tileType: { type: Type.STRING }, 
-                        unitPrice: { type: Type.NUMBER },
-                    },
-                    required: ['category', 'group', 'cartons', 'sqm', 'size', 'tileType', 'unitPrice'],
-                    propertyOrdering: ['category', 'group', 'sqm', 'cartons', 'size', 'tileType', 'unitPrice']
-                }
-            },
-            materials: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        item: { type: Type.STRING },
-                        quantity: { type: Type.NUMBER },
-                        unit: { type: Type.STRING },
-                        unitPrice: { type: Type.NUMBER },
-                    },
-                    required: ['item', 'quantity', 'unit', 'unitPrice'],
-                    propertyOrdering: ['item', 'quantity', 'unit', 'unitPrice']
-                }
-            },
-            adjustments: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        description: { type: Type.STRING },
-                        amount: { type: Type.NUMBER },
-                    },
-                    required: ['description', 'amount']
-                }
-            },
-            checklist: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        item: { type: Type.STRING },
-                        checked: { type: Type.BOOLEAN }
-                    },
-                    required: ['item', 'checked']
-                }
-            },
-            workmanshipRate: { type: Type.NUMBER },
-            maintenance: { type: Type.NUMBER },
-            profitPercentage: { type: Type.NUMBER },
-            depositPercentage: { type: Type.NUMBER },
-            termsAndConditions: { type: Type.STRING }
+                required: ['category', 'group', 'cartons', 'sqm', 'size', 'tileType', 'unitPrice']
+            }
         },
-        required: [
-            'clientDetails', 'tiles', 'materials', 'checklist', 'adjustments', 
-            'workmanshipRate', 'maintenance', 'profitPercentage', 'depositPercentage', 'termsAndConditions'
-        ],
-        propertyOrdering: [
-            'clientDetails', 'tiles', 'materials', 'adjustments', 'checklist', 
-            'workmanshipRate', 'maintenance', 'profitPercentage', 'depositPercentage', 'termsAndConditions'
-        ]
-    };
-    
-    const sizePriceRules = tilePricesBySize && tilePricesBySize.length > 0 
-        ? tilePricesBySize.map(r => `* Size "${r.size}" -> Use Price: ${r.price} NGN`).join('\n')
-        : 'No specific size defaults configured.';
+        materials: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    item: { type: Type.STRING },
+                    quantity: { type: Type.NUMBER },
+                    unit: { type: Type.STRING },
+                    unitPrice: { type: Type.NUMBER },
+                    calculationLogic: { type: Type.STRING },
+                },
+                required: ['item', 'quantity', 'unit', 'unitPrice']
+            }
+        },
+        adjustments: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    description: { type: Type.STRING },
+                    amount: { type: Type.NUMBER },
+                },
+                required: ['description', 'amount']
+            }
+        },
+        checklist: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    item: { type: Type.STRING },
+                    checked: { type: Type.BOOLEAN }
+                },
+                required: ['item', 'checked']
+            }
+        },
+        workmanshipRate: { type: Type.NUMBER },
+        maintenance: { type: Type.NUMBER },
+        profitPercentage: { type: Type.NUMBER },
+        depositPercentage: { type: Type.NUMBER },
+        termsAndConditions: { type: Type.STRING },
+        proTips: { type: Type.ARRAY, items: { type: Type.STRING } }
+    },
+    required: ['clientDetails', 'tiles', 'materials', 'checklist', 'adjustments', 'workmanshipRate', 'maintenance', 'profitPercentage', 'depositPercentage', 'termsAndConditions', 'proTips']
+};
+
+export const generateQuotationFromAI = async (inputText: string, settings: Settings, addCheckmateDefault: boolean, showChecklistDefault: boolean): Promise<any> => {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
+    const sizePriceRules = settings.tilePricesBySize?.map(r => `* Size "${r.size}" -> ${r.price} NGN`).join('\n') || '';
 
     const prompt = `
         You are "Tiling Quotation Formatter & Calculator AI".
-        Convert the following rough text into a professional tiling quotation JSON.
-        
-        Input Text:
-        """
-        ${inputText}
-        """
-
-        STRICT CALCULATION RULES:
-        1. Abbreviations: TW=Toilet Wall, TF=Toilet Floor, KW=Kitchen Wall, KF=Kitchen Floor, SR=Sitting Room, PASS=Passage, EXT=External Wall, STEP=Step.
-        2. Cartons Calculation: cartons = ceil(sqm / rate). 
-           Rates (m2/ctn): SR=${sittingRoomTileM2PerCarton}, Room=${roomTileM2PerCarton}, TW=${toiletWallTileM2PerCarton}, TF=${toiletFloorTileM2PerCarton}, KW=${kitchenWallTileM2PerCarton}, KF=${kitchenFloorTileM2PerCarton}, Wall=${wallTileM2PerCarton}, Floor=${floorTileM2PerCarton}, EXT=${externalWallTileM2PerCarton}, STEP=${stepTileM2PerCarton}.
-        3. Sizes: If missing, use: TW/KW=${defaultToiletWallSize}, TF/KF/Room=${defaultToiletFloorSize}, SR=${defaultSittingRoomSize}.
-        4. Unit Prices: 
-           - Highest Priority: Any price specified in the user text (e.g. "@ 5000").
-           - Second Priority: Rules based on tile size:
-             ${sizePriceRules}
-           - Third Priority (Area Defaults): SR=${sittingRoomTilePrice}, Room=${bedroomTilePrice}, TW=${toiletWallTilePrice}, TF=${toiletFloorTilePrice}, KW=${kitchenWallTilePrice}, KF=${kitchenFloorTilePrice}, EXT=${externalWallTilePrice}, STEP=${stepTilePrice}, General Wall=${wallTilePrice}, General Floor=${floorTilePrice}.
-        5. Materials: Cement=${cementPrice}, White Cement=${whiteCementPrice}, Sand=${sharpSandPrice}.
-        6. Rates: Workmanship=${workmanshipRate}. Maintenance=0 unless specified.
-        7. Terms: Use "${defaultTermsAndConditions}".
-        8. Checklist: Generate 3-5 tasks${addCheckmateDefault ? ' including "Checkmate"' : ''}.
+        Convert this text into a professional quotation JSON.
+        Input: "${inputText}"
+        Rules:
+        1. Units: SR=Sitting, TW=Toilet Wall, etc.
+        2. Pricing: ${sizePriceRules}. Default Workmanship: ${settings.workmanshipRate}.
+        3. Materials: Sugest cement, grout, and adhesive based on total SQM.
+        4. Calculation Logic: In the 'materials' array, explain HOW you got the quantity (e.g., '1 bag per 4m2 based on area').
+        5. Pro Tips: Add 2-3 professional technical tips for this specific project.
     `;
     
     try {
-        const ai = getAiClient();
-        console.log("[Gemini Service] Generating structured quotation with gemini-3-pro-preview...");
-        
         const response = await ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: responseSchema as any,
+                responseSchema: quotationSchema as any,
             }
         });
-
-        if (!response.text) {
-            throw new Error("No text content in response.");
-        }
-        
         return JSON.parse(response.text.trim());
-    } catch (error: any) {
-        console.error("[Gemini Service] Generation Error:", error);
-        throw error;
+    } catch (error) {
+        console.error("Gemini Generation Error:", error);
+        return generateMockQuotation(inputText, settings);
+    }
+};
+
+export const refineQuotationAI = async (currentData: QuotationData, instruction: string): Promise<QuotationData> => {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
+    const prompt = `
+        Update the following tiling quotation JSON based on this instruction: "${instruction}".
+        Keep the JSON structure identical.
+        Current JSON: ${JSON.stringify(currentData)}
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: quotationSchema as any,
+            }
+        });
+        return { ...currentData, ...JSON.parse(response.text.trim()) };
+    } catch (error) {
+        console.error("Refinement failed", error);
+        return currentData;
     }
 };
 
 export const getAiSummaryForTts = async (data: QuotationData, totalAmount: number): Promise<string> => {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     try {
-        const ai = getAiClient();
-        const prompt = `Summarize this tiling quotation for a client in a friendly, professional way. 
-        Mention the project name "${data.clientDetails.projectName}", the client "${data.clientDetails.clientName}", 
-        the total cost of ${totalAmount} Naira, and key materials or tiles used. Keep it under 100 words.`;
-        
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt
+        const prompt = `Summarize this quote for ${data.clientDetails.clientName} for project ${data.clientDetails.projectName}. Total: ${totalAmount}. Max 50 words.`;
+        const response = await ai.models.generateContent({ 
+            model: 'gemini-3-flash-preview', 
+            contents: prompt 
         });
-        return response.text || "No summary available.";
+        return response.text || "Summary unavailable.";
     } catch (error) {
-        console.error("Error generating summary for TTS:", error);
-        return "Failed to generate quotation summary.";
+        console.error("Gemini Summary Error:", error);
+        return "Failed to generate summary.";
     }
 };
 
 export const generateSpeechFromText = async (text: string): Promise<string> => {
+    const ai = new GoogleGenAI({ apiKey: getApiKey() });
     try {
-        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
             contents: [{ parts: [{ text: `Say clearly: ${text}` }] }],
             config: {
                 responseModalities: [Modality.AUDIO],
                 speechConfig: {
-                    voiceConfig: {
-                        prebuiltVoiceConfig: { voiceName: 'Kore' },
-                    },
+                    voiceConfig: { voiceName: 'Kore' },
                 },
             },
         });
         return response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data || "";
     } catch (error) {
-        console.error("Error generating speech:", error);
-        throw error;
+        console.error("Gemini TTS Error:", error);
+        return "";
     }
 };

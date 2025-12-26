@@ -10,7 +10,7 @@ export const LogOutIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
 );
 
 export const HanifgoldLogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-    <svg width="60" height="40" viewBox="0 0 150 100" fill="none" xmlns="http://www.w3.org/2000/Marg/svg" {...props}>
+    <svg width="60" height="40" viewBox="0 0 150 100" fill="none" xmlns="http://www.w3.org/2000/svg" {...props}>
         <defs>
             <linearGradient id="hanifGold" x1="0" y1="0" x2="1" y2="1">
                 <stop offset="0%" stopColor="#E6C66E" />
@@ -29,14 +29,12 @@ export const HanifgoldLogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props
     </svg>
 );
 
-export const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M20 7h-3a2 2 0 0 0-2 2v2a2 2 0 0 0 2 2h3" />
-    <path d="M4 18V4h12v5" />
-    <path d="M4 10h8" />
-    <path d="M4 14h6" />
-    <rect width="8" height="8" x="12" y="12" rx="2" />
-  </svg>
+export const InfoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="16" x2="12" y2="12"/>
+        <line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
 );
 
 export const GenerateIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (

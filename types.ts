@@ -10,9 +10,8 @@ export interface Tile {
   sqm: number;
   tileType: 'Wall' | 'Floor' | 'External Wall' | 'Step' | 'Unknown';
   unitPrice: number;
-  // confidence: number; // Removed as per user request to hide debug info
   size?: string;
-  group?: string; // New: e.g., "Flat 1", "BQ", "General"
+  group?: string;
 }
 
 export interface Material {
@@ -20,7 +19,8 @@ export interface Material {
   quantity: number;
   unit: string;
   unitPrice: number;
-  // confidence: number; // Removed as per user request to hide debug info
+  isCalculated?: boolean;
+  calculationLogic?: string; // e.g., "1 bag per 4m2 area"
 }
 
 export interface Client {
@@ -28,14 +28,14 @@ export interface Client {
   name: string;
   address: string;
   phone: string;
-  email?: string; // Added email field
+  email?: string;
 }
 
 export interface ClientDetails {
   clientName: string;
   clientAddress: string;
   clientPhone: string;
-  clientEmail?: string; // Added email field
+  clientEmail?: string;
   projectName: string;
   showClientName: boolean;
   showClientAddress: boolean;
@@ -51,7 +51,7 @@ export interface ChecklistItem {
 
 export interface QuotationData {
   id: string;
-  date: number; // timestamp
+  date: number;
   status: 'Pending' | 'Accepted' | 'Rejected' | 'Invoiced';
   clientDetails: ClientDetails;
   tiles: Tile[];
@@ -59,10 +59,8 @@ export interface QuotationData {
   workmanshipRate: number;
   maintenance: number;
   profitPercentage: number | null;
-  // This field is for user-provided terms and will be populated by the AI
   termsAndConditions?: string;
   invoiceId?: string;
-  // Fix: Added optional invoiceNumber and dueDate to support display of invoiced quotations in the UI
   invoiceNumber?: string;
   dueDate?: number;
   isBulkGenerated?: boolean;
@@ -74,21 +72,25 @@ export interface QuotationData {
   adjustments: Adjustment[];
   depositPercentage: number | null;
   
-  // New granular visibility controls per quotation
   showBankDetails?: boolean;
   showTerms?: boolean;
   showWorkmanship?: boolean;
   showMaintenance?: boolean;
   showTax?: boolean;
   showCostSummary?: boolean;
+  
+  proTips?: string[]; // Technical advice for the job
+  siteAnalysis?: string; // AI analysis of site conditions
+  
+  aiRefinementHistory?: string[];
 }
 
 export interface InvoiceData {
   id: string;
   quotationId: string;
   invoiceNumber: string;
-  invoiceDate: number; // timestamp
-  dueDate: number; // timestamp
+  invoiceDate: number;
+  dueDate: number;
   status: 'Unpaid' | 'Paid' | 'Overdue';
   clientDetails: ClientDetails;
   tiles: Tile[];
@@ -106,66 +108,50 @@ export interface InvoiceData {
 
 export interface Expense {
   id: string;
-  date: number; // timestamp
+  date: number;
   category: string;
   description: string;
   amount: number;
-  quotationId?: string; // Optional link to a project
+  quotationId?: string;
 }
 
-
 export interface Settings {
-  // Pricing & Calculation
   wallTilePrice: number;
   floorTilePrice: number;
   sittingRoomTilePrice: number;
   externalWallTilePrice: number;
   stepTilePrice: number;
-  
-  // New Granular Prices
   bedroomTilePrice: number;
   toiletWallTilePrice: number;
   toiletFloorTilePrice: number;
   kitchenWallTilePrice: number;
   kitchenFloorTilePrice: number;
-
   cementPrice: number;
   whiteCementPrice: number;
   sharpSandPrice: number;
   workmanshipRate: number;
-  wastageFactor: number; // e.g., 1.10 for 10%
-  
-  // New: Size-based pricing rules
+  wastageFactor: number;
   tilePricesBySize: { size: string; price: number }[];
-
-  // Coverage Rates (m2 per carton)
   wallTileM2PerCarton: number;
   floorTileM2PerCarton: number;
   sittingRoomTileM2PerCarton: number;
   roomTileM2PerCarton: number;
   externalWallTileM2PerCarton: number;
   stepTileM2PerCarton: number;
-  // New specific areas
   toiletWallTileM2PerCarton: number;
   toiletFloorTileM2PerCarton: number;
   kitchenWallTileM2PerCarton: number;
   kitchenFloorTileM2PerCarton: number;
-  
-  // New: Default Tile Sizes per Area
   defaultToiletWallSize: string;
   defaultToiletFloorSize: string;
   defaultRoomFloorSize: string;
   defaultSittingRoomSize: string;
   defaultKitchenWallSize: string;
   defaultKitchenFloorSize: string;
-
   taxPercentage: number;
-  
-  // Display Options
   showTermsAndConditions: boolean;
   showUnitPrice: boolean;
   showSubtotal: boolean;
-  // showConfidence: boolean; // Removed as per user request
   showMaintenance: boolean;
   showTileSize: boolean;
   showTax: boolean;
@@ -173,29 +159,22 @@ export interface Settings {
   showMaterialsDefault: boolean;
   showAdjustmentsDefault: boolean;
   showDeposit: boolean;
-
-  // Branding & Company
   companyName: string;
   companySlogan: string;
   companyAddress: string;
   companyEmail: string;
   companyPhone: string;
   documentTitle: string;
-  companyLogo: string; // Base64 encoded image
-  companySignature: string; // Base64 encoded image for signature
+  companyLogo: string;
+  companySignature: string;
   accentColor: string;
   headerLayout: 'modern' | 'classic' | 'minimalist';
   footerText: string;
-
-
-  // Customization
   customMaterialUnits: string[];
   defaultTermsAndConditions: string;
   defaultExpenseCategories: string[];
   addCheckmateDefault: boolean;
   defaultDepositPercentage: number;
-  
-  // Invoicing
   invoicePrefix: string;
   defaultBankDetails: string;
   defaultInvoiceNotes: string;
