@@ -1,0 +1,5 @@
+{
+  "buildCommand": "cd amm-final/amm-tripapp && npm install && npm run build",
+  "outputDirectory": "amm-final/amm-tripapp/dist",
+  "rewrites": [{"source": "/(.*)", "destination": "/index.html"}]
+}
